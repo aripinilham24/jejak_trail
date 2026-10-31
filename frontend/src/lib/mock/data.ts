@@ -1328,3 +1328,7 @@ export const mockDocuments = [
   { id: 'doc-1', title: 'Sertifikat Finisher Sundoro 21K', type: 'finisher_certificate', url: '#', uploadedAt: '2026-01-15' },
   { id: 'doc-2', title: 'Surat Keterangan Sehat', type: 'medical_certificate', url: '#', uploadedAt: '2026-02-01' },
 ];
+
+export const mockOrganizerAccounts = db.organizerAccounts;
+export const mockAdminUsers = db.adminUsers;
+export const mockBankAccounts = db.bankAccounts;

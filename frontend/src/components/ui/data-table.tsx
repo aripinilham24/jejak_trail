@@ -11,7 +11,7 @@ import {
 export interface Column {
   accessorKey: string
   header: string
-  cell?: (value: any) => React.ReactNode
+  cell?: (value: any, row: Record<string, any>) => React.ReactNode
 }
 
 interface DataTableProps {
@@ -53,7 +53,7 @@ export function DataTable({ columns, data }: DataTableProps) {
           <TableRow key={i}>
             {columns.map((column) => (
               <TableCell key={column.accessorKey}>
-                {column.cell ? column.cell(row[column.accessorKey]) : row[column.accessorKey]}
+                {column.cell ? column.cell(row[column.accessorKey], row) : row[column.accessorKey]}
               </TableCell>
             ))}
           </TableRow>

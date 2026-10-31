@@ -12,6 +12,7 @@ import {
   Clock,
   ExternalLink,
   FileText,
+  Loader2,
   Flag,
   Heart,
   Info,
@@ -45,7 +46,7 @@ import { NotFoundPage } from "@/pages/public/not-found"
 import { EventCover } from "@/components/shared/event-cover"
 import { QuotaBar } from "@/components/shared/quota-bar"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { useDb } from "@/lib/mock/store"
+import { useEvent, useEvents } from "@/lib/api/hooks"
 import { DIFFICULTY_CLASS, DIFFICULTY_LABEL, REQUIREMENT_TYPE_LABEL } from "@/lib/constants"
 import {
   formatCutoff,
@@ -77,14 +78,15 @@ function getPhase(event: Event): RegistrationPhase {
 export function EventDetailPage() {
   const { slug } = useParams()
   const { t } = useTranslation()
-  const db = useDb()
   const [activeTab, setActiveTab] = useState("ringkasan")
 
-  const event = db.events.find((item) => item.slug === slug)
+  const eventQuery = useEvent(slug)
+  const relatedQuery = useEvents({ limit: 20 })
+  const event = eventQuery.data
 
   const related = useMemo(() => {
     if (!event) return []
-    return db.events
+    return (relatedQuery.data?.data ?? [])
       .filter(
         (item) =>
           item.id !== event.id &&
@@ -92,7 +94,15 @@ export function EventDetailPage() {
           ["published", "registration_closed"].includes(item.status),
       )
       .slice(0, 2)
-  }, [db.events, event])
+  }, [relatedQuery.data, event])
+
+  if (eventQuery.isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-amber-500" />
+      </div>
+    )
+  }
 
   if (!event) return <NotFoundPage />
 
@@ -105,9 +115,7 @@ export function EventDetailPage() {
   )
   const requirements = event.requirements
   const refundPolicy = event.refundPolicy
-  const organizer = event.organizationId
-    ? db.organizations.find((o) => o.id === event.organizationId)
-    : undefined
+  const organizer = event.eventType === "native" ? event.organizerName : undefined
 
   const registerHref =
     phase === "external"
@@ -711,17 +719,19 @@ export function EventDetailPage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-[#123523] to-[#071410] text-xs font-semibold text-amber-200">
-                    {initials(organizer.name)}
+                    {initials(event.organizerName)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{organizer.name}</p>
+                    <p className="truncate text-sm font-medium">{event.organizerName}</p>
                     <p className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-300">
                       <BadgeCheck className="size-3" />
-                      {t("detail.verifiedOrganizer")}
+                      {event.organizerVerified
+                        ? t("detail.verifiedOrganizer")
+                        : "Organizer belum terverifikasi"}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{organizer.city}, {organizer.province}</p>
+                <p className="text-xs text-muted-foreground">{event.city}, {event.province}</p>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">

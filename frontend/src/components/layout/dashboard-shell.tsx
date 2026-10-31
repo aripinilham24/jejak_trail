@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { Link, NavLink, Outlet } from "react-router-dom"
+import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ExternalLink, LifeBuoy, Menu, Search } from "lucide-react"
+import { ExternalLink, LifeBuoy, Loader2, Menu, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -11,7 +11,9 @@ import { AccountSwitcher } from "@/components/layout/account-switcher"
 import { Brand } from "@/components/layout/brand"
 import { LanguageToggle } from "@/components/layout/language-toggle"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { NAV_BY_ROLE } from "@/components/layout/nav-config"
+import { NAV_BY_ROLE, ROLE_HOME } from "@/components/layout/nav-config"
+import { useAuth } from "@/lib/auth/auth-context"
+import { useAdminEvents, useAdminOrganizations } from "@/lib/api/hooks"
 import { useDb } from "@/lib/mock/store"
 import { useIdentity } from "@/lib/session"
 import { cn } from "@/lib/utils"
@@ -27,6 +29,16 @@ interface DashboardShellProps {
 function useBadges(role: AccountType): Partial<Record<string, number>> {
   const db = useDb()
   const identity = useIdentity()
+  const pendingOrgs = useAdminOrganizations({
+    status: "pending",
+    limit: 1,
+    enabled: role === "admin",
+  })
+  const pendingEvents = useAdminEvents({
+    status: "pending_review",
+    limit: 1,
+    enabled: role === "admin",
+  })
 
   if (role === "organizer") {
     const eventIds = new Set(
@@ -40,8 +52,8 @@ function useBadges(role: AccountType): Partial<Record<string, number>> {
   }
   if (role === "admin") {
     return {
-      pendingOrgs: db.organizations.filter((o) => o.verificationStatus === "pending").length,
-      pendingEvents: db.events.filter((e) => e.status === "pending_review").length,
+      pendingOrgs: pendingOrgs.data?.meta.total ?? 0,
+      pendingEvents: pendingEvents.data?.meta.total ?? 0,
       openDisputes: db.disputes.filter((d) => d.status === "open" || d.status === "in_review").length,
     }
   }
@@ -161,6 +173,29 @@ function SidebarBody({
 
 export function DashboardShell({ role, children, contextLabel }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const auth = useAuth()
+  const location = useLocation()
+
+  if (auth.status === "loading") {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background">
+        <Loader2 className="size-6 animate-spin text-amber-500" />
+      </div>
+    )
+  }
+
+  if (auth.status !== "authenticated") {
+    return (
+      <Navigate
+        to={`/login?as=${role}&from=${encodeURIComponent(location.pathname)}`}
+        replace
+      />
+    )
+  }
+
+  if (auth.accountType !== role) {
+    return <Navigate to={ROLE_HOME[auth.accountType ?? "attendee"]} replace />
+  }
 
   return (
     <div className="min-h-svh bg-background">

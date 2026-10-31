@@ -33,33 +33,33 @@ export interface NavItem {
 
 export const NAV_BY_ROLE: Record<AccountType, NavItem[]> = {
   attendee: [
-    { to: "/akun", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
-    { to: "/akun/pendaftaran", labelKey: "account.myRegistrations", icon: ClipboardCheck },
-    { to: "/akun/tiket", labelKey: "account.ticket", icon: Ticket },
-    { to: "/akun/dokumen", labelKey: "account.documents", icon: FileText },
-    { to: "/akun/notifikasi", labelKey: "account.notifications", icon: Bell },
-    { to: "/akun/profil", labelKey: "account.profile", icon: UserSquare2 },
+    { to: "/account", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
+    { to: "/account/registrations", labelKey: "account.myRegistrations", icon: ClipboardCheck },
+    { to: "/account/tickets", labelKey: "account.ticket", icon: Ticket },
+    { to: "/account/documents", labelKey: "account.documents", icon: FileText },
+    { to: "/account/notifications", labelKey: "account.notifications", icon: Bell },
+    { to: "/account/profile", labelKey: "account.profile", icon: UserSquare2 },
   ],
   organizer: [
     { to: "/organizer", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
-    { to: "/organizer/event", labelKey: "organizer.events", icon: CalendarDays },
-    { to: "/organizer/verifikasi", labelKey: "organizer.verifications", icon: BadgeCheck, badgeKey: "pendingVerifications" },
-    { to: "/organizer/peserta", labelKey: "organizer.participants", icon: Users },
+    { to: "/organizer/events", labelKey: "organizer.events", icon: CalendarDays },
+    { to: "/organizer/verifications", labelKey: "organizer.verifications", icon: BadgeCheck, badgeKey: "pendingVerifications" },
+    { to: "/organizer/participants", labelKey: "organizer.participants", icon: Users },
     { to: "/organizer/checkin", labelKey: "organizer.checkin", icon: ScanLine },
-    { to: "/organizer/pengumuman", labelKey: "organizer.announcements", icon: Megaphone },
-    { to: "/organizer/keuangan", labelKey: "organizer.finance", icon: Wallet },
-    { to: "/organizer/tim", labelKey: "organizer.team", icon: UserSquare2 },
-    { to: "/organizer/profil", labelKey: "organizer.profile", icon: Building2 },
+    { to: "/organizer/announcements", labelKey: "organizer.announcements", icon: Megaphone },
+    { to: "/organizer/finance", labelKey: "organizer.finance", icon: Wallet },
+    { to: "/organizer/team", labelKey: "organizer.team", icon: UserSquare2 },
+    { to: "/organizer/profile", labelKey: "organizer.profile", icon: Building2 },
   ],
   admin: [
     { to: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
-    { to: "/admin/organisasi", labelKey: "admin.organizations", icon: BadgeCheck, badgeKey: "pendingOrgs" },
-    { to: "/admin/event", labelKey: "admin.eventCuration", icon: CalendarDays, badgeKey: "pendingEvents" },
-    { to: "/admin/event-eksternal", labelKey: "admin.externalEvents", icon: GitCompareArrows },
-    { to: "/admin/keuangan", labelKey: "admin.finance", icon: Banknote },
-    { to: "/admin/refund", labelKey: "admin.refunds", icon: Undo2 },
-    { to: "/admin/sengketa", labelKey: "admin.disputes", icon: Gavel, badgeKey: "openDisputes" },
-    { to: "/admin/pengguna", labelKey: "admin.users", icon: Users },
+    { to: "/admin/organizations", labelKey: "admin.organizations", icon: BadgeCheck, badgeKey: "pendingOrgs" },
+    { to: "/admin/events", labelKey: "admin.eventCuration", icon: CalendarDays, badgeKey: "pendingEvents" },
+    { to: "/admin/external-events", labelKey: "admin.externalEvents", icon: GitCompareArrows },
+    { to: "/admin/finance", labelKey: "admin.finance", icon: Banknote },
+    { to: "/admin/refunds", labelKey: "admin.refunds", icon: Undo2 },
+    { to: "/admin/disputes", labelKey: "admin.disputes", icon: Gavel, badgeKey: "openDisputes" },
+    { to: "/admin/users", labelKey: "admin.users", icon: Users },
     { to: "/admin/audit", labelKey: "admin.auditLogs", icon: ScrollText },
   ],
 }
@@ -71,7 +71,7 @@ export const ROLE_LABEL_KEY: Record<AccountType, string> = {
 }
 
 export const ROLE_HOME: Record<AccountType, string> = {
-  attendee: "/akun",
+  attendee: "/account",
   organizer: "/organizer",
   admin: "/admin",
 }

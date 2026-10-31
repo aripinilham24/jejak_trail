@@ -13,8 +13,8 @@ export function PublicFooter() {
       links: [
         { to: "/events", label: t("nav.events") },
         { to: "/kalender", label: t("nav.calendar") },
-        { to: "/akun", label: t("account.myRegistrations") },
-        { to: "/akun/tiket", label: t("account.ticket") },
+        { to: "/account", label: t("account.myRegistrations") },
+        { to: "/account/tickets", label: t("account.ticket") },
       ],
     },
     {

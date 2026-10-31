@@ -21,7 +21,7 @@ import {
 } from "@/components/events/event-filters"
 import { DataPagination } from "@/components/shared/data-pagination"
 import { EmptyState } from "@/components/shared/empty-state"
-import { useDb } from "@/lib/mock/store"
+import { useEvents } from "@/lib/api/hooks"
 import { LIST_PAGE_SIZE } from "@/lib/constants"
 import { formatMonthYear } from "@/lib/format"
 import type { Event } from "@/types"
@@ -67,17 +67,17 @@ function matchesDistance(event: Event, bucket: string) {
 
 export function EventsListPage() {
   const { t } = useTranslation()
-  const db = useDb()
+  const eventsQuery = useEvents({ limit: 100 })
   const [filters, setFilters] = useState<EventFilterState>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
   const [view, setView] = useState<"grid" | "list">("grid")
 
   const baseEvents = useMemo(
     () =>
-      db.events.filter((event) =>
+      (eventsQuery.data?.data ?? []).filter((event) =>
         ["published", "registration_closed"].includes(event.status),
       ),
-    [db.events],
+    [eventsQuery.data],
   )
 
   const provinces = useMemo(
@@ -170,6 +170,12 @@ export function EventsListPage() {
           {t("events.subtitle", { count: baseEvents.length, organizers: organizerCount })}
         </p>
       </div>
+
+      {eventsQuery.isError && (
+        <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Gagal memuat event dari server. Pastikan backend berjalan di port 8080.
+        </p>
+      )}
 
       <div className="relative mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">

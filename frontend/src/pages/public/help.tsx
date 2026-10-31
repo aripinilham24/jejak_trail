@@ -145,7 +145,7 @@ export function HelpPage() {
               support.
             </p>
             <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
-              <Link to="/akun">
+              <Link to="/account">
                 <PlayCircle className="size-3.5" />
                 Buka akun saya
               </Link>

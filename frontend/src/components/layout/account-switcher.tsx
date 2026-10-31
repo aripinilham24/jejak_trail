@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ChevronsUpDown, LogIn, LogOut, RotateCcw, ShieldCheck, Store, User as UserIcon } from "lucide-react"
+import { ChevronsUpDown, LogIn, LogOut, ShieldCheck, Store, User as UserIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,8 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { actions } from "@/lib/mock/store"
-import { ROLE_HOME, ROLE_LABEL_KEY } from "@/components/layout/nav-config"
+import { ROLE_LABEL_KEY } from "@/components/layout/nav-config"
 import { initials } from "@/lib/format"
 import { useIdentity, useSession } from "@/lib/session"
 import { cn } from "@/lib/utils"
@@ -28,7 +27,7 @@ const ROLE_ICON: Record<AccountType, typeof UserIcon> = {
 export function AccountSwitcher({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { accountType, isAuthenticated, switchAccountType, signOut } = useSession()
+  const { accountType, isAuthenticated, signOut } = useSession()
   const identity = useIdentity()
 
   const displayName = !isAuthenticated
@@ -89,9 +88,9 @@ export function AccountSwitcher({ compact = false }: { compact?: boolean }) {
               <DropdownMenuItem
                 key={role}
                 className="justify-between"
-                onClick={() => {
-                  switchAccountType(role)
-                  navigate(ROLE_HOME[role])
+                onClick={async () => {
+                  await signOut()
+                  navigate(`/login?as=${role}`)
                 }}
               >
                 <span className="flex items-center gap-2">
@@ -104,16 +103,11 @@ export function AccountSwitcher({ compact = false }: { compact?: boolean }) {
           })}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => actions.resetDemoData()}>
-          <RotateCcw className="size-4" />
-          Reset data demo
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         {isAuthenticated ? (
           <DropdownMenuItem
             onClick={() => {
               signOut()
-              navigate("/masuk")
+              navigate("/login")
             }}
           >
             <LogOut className="size-4" />
@@ -121,7 +115,7 @@ export function AccountSwitcher({ compact = false }: { compact?: boolean }) {
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem asChild>
-            <Link to="/masuk">
+            <Link to="/login">
               <LogIn className="size-4" />
               {t("actions.login")}
             </Link>

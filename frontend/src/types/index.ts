@@ -100,6 +100,7 @@ export interface Organization {
   province: string
   city: string
   legalDocUrl?: string
+  legalDocKey?: string
   verificationStatus: VerificationStatus
   verifiedBy?: string
   verifiedAt?: string
