@@ -92,8 +92,17 @@ Sudah berjalan end-to-end:
 - Auth: register attendee, register organizer, login 3 konteks, refresh rotation + deteksi reuse, logout, me, update profil, verifikasi email (Mailpit).
 - Discovery: list event + filter, detail event, kalender, metadata filter.
 - Admin: daftar/verifikasi organisasi, daftar/review event, CRUD event eksternal, audit log.
+- Organizer event builder: draft event lengkap (kategori, syarat kualifikasi, form peserta, refund policy), list/detail event milik organisasi, submit ke review admin.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail sudah memakai API.
+
+### Aturan penting organizer
+
+- Organisasi harus `verified` dan `active` untuk membuat/mengubah/mengirim event.
+- Hanya event `draft` yang bisa diubah atau dikirim untuk review.
+- Submit review mensyaratkan minimal satu kategori dan kebijakan refund.
+- Perubahan event draft mengganti seluruh kategori/syarat/form/refund policy dalam satu transaksi; ditolak bila sudah ada pendaftar.
+- Kebijakan refund diberi versi otomatis per organisasi + nama kebijakan.
 
 ### Endpoint utama
 
@@ -112,6 +121,12 @@ GET    /api/v1/auth/me
 GET    /api/v1/auth/verify-email?token=...
 PATCH  /api/v1/account/profile
 
+GET    /api/v1/organizer/events
+POST   /api/v1/organizer/events
+GET    /api/v1/organizer/events/:id
+PUT    /api/v1/organizer/events/:id
+POST   /api/v1/organizer/events/:id/submit
+
 GET    /api/v1/admin/organizations
 GET    /api/v1/admin/organizations/:id
 POST   /api/v1/admin/organizations/:id/verify
@@ -126,12 +141,12 @@ DELETE /api/v1/admin/external-events/:id
 ### Catatan image MinIO
 
 Registry `minio/minio` dan `minio/mc` tidak dapat diakses dari environment ini,
-jadi compose memakai `bitnamilegacy/minio` (MinIO versi legacy) yang sudah
-menyertakan `mc`. Ganti kembali ke image resmi bila tersedia.
+jadi compose memakai `bitnamilegacy/minio` (MinIO versi legacy). Bucket dibuat
+otomatis oleh API saat start (`EnsureBucket`), sehingga tidak ada service init
+satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Organizer event builder (event, kategori, syarat kualifikasi, form field, refund policy).
 - Registrasi peserta + verifikasi organizer + waitlist.
 - Payment gateway adapter + webhook idempoten + BIB/tiket QR.
 - Check-in racepack offline, refund, pencairan, sengketa.

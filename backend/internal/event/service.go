@@ -793,3 +793,11 @@ func (s *Service) attachURLs(ctx context.Context, dto *EventDTO, e gen.Event) {
 		}
 	}
 }
+
+func (s *Service) OrganizerName(ctx context.Context, id uuid.UUID) string {
+	organizer, err := s.q.GetOrganizerByID(ctx, id)
+	if err != nil {
+		return "Organizer"
+	}
+	return organizer.FullName
+}

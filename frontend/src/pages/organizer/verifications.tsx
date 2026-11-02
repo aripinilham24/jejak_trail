@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ export function OrganizerVerificationsPage() {
   const { t } = useTranslation();
 
   return (
-    <DashboardShell role="organizer">
+    <>
       <div className='flex flex-col gap-6'>
         <div className='flex items-center justify-between'>
           <Heading>{t('organizer.verifications.title')}</Heading>
@@ -38,6 +37,6 @@ export function OrganizerVerificationsPage() {
         </div>
         <DataTable columns={columns} data={mockRegistrations.filter((r: any) => r.status === 'pending_verification')} />
       </div>
-    </DashboardShell>
+    </>
   );
 }

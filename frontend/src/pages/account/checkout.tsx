@@ -1,7 +1,6 @@
 
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +18,7 @@ export function AccountCheckoutPage() {
 
   if (!registration) {
     return (
-      <DashboardShell role="attendee">
+      <>
         <Heading className='mb-6'>{t('account.checkout.notFoundTitle')}</Heading>
         <p className='text-muted-foreground'>{t('account.checkout.notFoundMessage')}</p>
         <Button variant='outline' className='mt-4' asChild>
@@ -27,12 +26,12 @@ export function AccountCheckoutPage() {
             {t('account.checkout.backToRegistrationsButton')}
           </Link>
         </Button>
-      </DashboardShell>
+      </>
     );
   }
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.checkout.title', { eventName: registration.event!.title }) }</Heading>
       <Card className='max-w-xl mx-auto'>
         <CardHeader>
@@ -94,6 +93,6 @@ export function AccountCheckoutPage() {
           </Button>
         </CardFooter>
       </Card>
-    </DashboardShell>
+    </>
   );
 }

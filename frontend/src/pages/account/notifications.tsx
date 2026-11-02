@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -12,7 +11,7 @@ export function AccountNotificationsPage() {
   const settings = mockNotificationsSettings;
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.notifications.title')}</Heading>
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
         {settings.map((setting) => (
@@ -30,6 +29,6 @@ export function AccountNotificationsPage() {
           </Card>
         ))}
       </div>
-    </DashboardShell>
+    </>
   );
 }

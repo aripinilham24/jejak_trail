@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -12,7 +11,7 @@ export function AccountProfilePage() {
   const user = mockUserProfile;
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.profile.title')}</Heading>
       <Card className='max-w-2xl mx-auto'>
         <CardHeader>
@@ -52,6 +51,6 @@ export function AccountProfilePage() {
           <Button variant='outline'>{t('account.profile.saveButton')}</Button>
         </CardFooter>
       </Card>
-    </DashboardShell>
+    </>
   );
 }

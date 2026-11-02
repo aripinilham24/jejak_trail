@@ -451,3 +451,52 @@ SELECT *
 FROM events
 WHERE slug = sqlc.arg(slug)
 LIMIT 1;
+
+-- name: ListEventsByOrganization :many
+SELECT *
+FROM events
+WHERE organization_id = sqlc.arg(organization_id)
+  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
+  AND (sqlc.narg(q)::text IS NULL OR title ILIKE '%' || sqlc.narg(q)::text || '%')
+ORDER BY created_at DESC
+LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
+
+-- name: CountEventsByOrganization :one
+SELECT count(*)
+FROM events
+WHERE organization_id = sqlc.arg(organization_id)
+  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status)::text)
+  AND (sqlc.narg(q)::text IS NULL OR title ILIKE '%' || sqlc.narg(q)::text || '%');
+
+-- name: CountRegistrationsByEventID :one
+SELECT count(*)
+FROM registrations
+WHERE event_id = sqlc.arg(event_id);
+
+-- name: DeleteEventCategoriesByEventID :exec
+DELETE FROM event_categories
+WHERE event_id = sqlc.arg(event_id);
+
+-- name: DeleteRegistrationFormFieldsByEventID :exec
+DELETE FROM registration_form_fields
+WHERE event_id = sqlc.arg(event_id);
+
+-- name: ClearEventRefundPolicy :exec
+UPDATE events
+SET refund_policy_id = NULL
+WHERE id = sqlc.arg(id);
+
+-- name: SetEventRefundPolicy :exec
+UPDATE events
+SET refund_policy_id = sqlc.arg(refund_policy_id)
+WHERE id = sqlc.arg(id);
+
+-- name: DeleteRefundPolicy :exec
+DELETE FROM refund_policies
+WHERE id = sqlc.arg(id) AND organization_id = sqlc.arg(organization_id);
+
+-- name: GetNextRefundPolicyVersion :one
+SELECT (COALESCE(MAX(version), 0) + 1)::int AS next_version
+FROM refund_policies
+WHERE organization_id = sqlc.arg(organization_id)
+  AND name = sqlc.arg(name);

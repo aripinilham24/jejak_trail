@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ export function AccountRegistrationDetailPage() {
 
   if (!reg) {
     return (
-      <DashboardShell role="attendee">
+      <>
         <Heading className='mb-6'>{t('account.registrationDetail.notFoundTitle')}</Heading>
         <p className='text-muted-foreground'>{t('account.registrationDetail.notFoundMessage')}</p>
         <Button variant='outline' className='mt-4' asChild>
@@ -24,12 +23,12 @@ export function AccountRegistrationDetailPage() {
             {t('account.registrationDetail.backButton')}
           </Link>
         </Button>
-      </DashboardShell>
+      </>
     );
   }
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.registrationDetail.title', { eventName: reg.event?.title || 'Event' })}</Heading>
       <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
         <Card>
@@ -101,6 +100,6 @@ export function AccountRegistrationDetailPage() {
           </CardFooter>
         </Card>
       </div>
-    </DashboardShell>
+    </>
   );
 }

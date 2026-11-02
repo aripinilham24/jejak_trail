@@ -1,7 +1,6 @@
 
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ export function AccountTicketDetailPage() {
 
   if (!ticket) {
     return (
-      <DashboardShell role="attendee">
+      <>
         <Heading className='mb-6'>{t('account.ticketDetail.notFoundTitle')}</Heading>
         <p className='text-muted-foreground'>{t('account.ticketDetail.notFoundMessage')}</p>
         <Button variant='outline' className='mt-4' asChild>
@@ -24,12 +23,12 @@ export function AccountTicketDetailPage() {
             {t('account.ticketDetail.backButton')}
           </Link>
         </Button>
-      </DashboardShell>
+      </>
     );
   }
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.ticketDetail.title')}</Heading>
       <Card className='max-w-lg mx-auto'>
         <CardHeader className='flex flex-col items-center justify-center text-center'>
@@ -50,6 +49,6 @@ export function AccountTicketDetailPage() {
           </Button>
         </CardFooter>
       </Card>
-    </DashboardShell>
+    </>
   );
 }

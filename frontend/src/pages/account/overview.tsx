@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { StatCard } from '@/components/shared/stat-card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ export function AccountOverviewPage() {
   ];
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.overview.title')}</Heading>
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
         {stats.map((stat) => (
@@ -145,6 +144,6 @@ export function AccountOverviewPage() {
           </CardFooter>
         </Card>
       </div>
-    </DashboardShell>
+    </>
   );
 }

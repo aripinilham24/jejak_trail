@@ -174,6 +174,13 @@ func newApp(
 	api.Get("/events/:slug", eventHandler.Detail)
 	api.Get("/meta/discovery-filters", eventHandler.Meta)
 
+	organizer := api.Group("/organizer", auth.RequireAuth(tokens, auth.AccountOrganizer))
+	organizer.Get("/events", eventHandler.OrganizerList)
+	organizer.Post("/events", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerCreate)
+	organizer.Get("/events/:id", eventHandler.OrganizerGet)
+	organizer.Put("/events/:id", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerUpdate)
+	organizer.Post("/events/:id/submit", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerSubmit)
+
 	admin := api.Group("/admin", auth.RequireAuth(tokens, auth.AccountAdmin))
 	admin.Get("/events", eventHandler.AdminList)
 	admin.Get("/events/:id", eventHandler.AdminGet)

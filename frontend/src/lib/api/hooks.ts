@@ -153,3 +153,119 @@ export function useVerifyOrganization() {
     },
   })
 }
+
+export interface OrganizerRequirementInput {
+  requirementType: string
+  label: string
+  description?: string
+  isRequired: boolean
+  sortOrder: number
+}
+
+export interface OrganizerCategoryInput {
+  name: string
+  distanceKm: number
+  elevationGainM: number
+  difficulty: "easy" | "moderate" | "hard" | "extreme"
+  price: number
+  quota: number
+  minAge: number
+  cutoffMinutes: number
+  requiresQualification: boolean
+  bibPrefix: string
+  bibStart: number
+  bibEnd: number
+  requirements: OrganizerRequirementInput[]
+}
+
+export interface OrganizerFormFieldInput {
+  fieldKey: string
+  label: string
+  fieldType: "text" | "number" | "select" | "date" | "file" | "textarea" | "checkbox"
+  options: string[]
+  isRequired: boolean
+  isSensitive: boolean
+  sortOrder: number
+}
+
+export interface OrganizerRefundRuleInput {
+  daysBeforeEventMin: number
+  daysBeforeEventMax: number | null
+  refundPercent: number
+}
+
+export interface OrganizerRefundPolicyInput {
+  name: string
+  policyType: "tiered" | "no_refund" | "full_refund"
+  description: string
+  rules: OrganizerRefundRuleInput[]
+}
+
+export interface OrganizerEventInput {
+  title: string
+  description: string
+  locationName: string
+  province: string
+  city: string
+  latitude: number
+  longitude: number
+  eventStartAt: string
+  eventEndAt: string
+  registrationOpenAt: string
+  registrationCloseAt: string
+  coverKey?: string | null
+  routeGpxKey?: string | null
+  routeProfile: { km: number; elevation: number }[]
+  mandatoryGear: string[]
+  terms: string
+  refundPolicy: OrganizerRefundPolicyInput | null
+  categories: OrganizerCategoryInput[]
+  formFields: OrganizerFormFieldInput[]
+}
+
+export function useOrganizerEvents(params: { status?: string; q?: string; page?: number; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ["organizer-events", params],
+    queryFn: () => api.list<Event>(`/organizer/events${toQuery(params)}`),
+  })
+}
+
+export function useOrganizerEvent(id: string | undefined) {
+  return useQuery({
+    queryKey: ["organizer-event", id],
+    queryFn: () => api.get<Event>(`/organizer/events/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useCreateOrganizerEvent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: OrganizerEventInput) => api.post<Event>("/organizer/events", input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["organizer-events"] })
+    },
+  })
+}
+
+export function useUpdateOrganizerEvent(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: OrganizerEventInput) => api.put<Event>(`/organizer/events/${id}`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["organizer-events"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizer-event", id] })
+    },
+  })
+}
+
+export function useSubmitOrganizerEvent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.post<Event>(`/organizer/events/${id}/submit`, {}),
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: ["organizer-events"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizer-event", id] })
+    },
+  })
+}

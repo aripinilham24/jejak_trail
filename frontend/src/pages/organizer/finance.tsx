@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { StatCard } from '@/components/shared/stat-card';
 import { DataTable } from '@/components/ui/data-table';
@@ -9,7 +8,7 @@ export function OrganizerFinancePage() {
   const { t } = useTranslation();
 
   return (
-    <DashboardShell role="organizer">
+    <>
       <Heading className='mb-6'>{t('organizer.finance')}</Heading>
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
         <StatCard label={t('organizer.collected')} value='Rp 150.000.000' trend={{ value: '+12%', positive: true }} />
@@ -26,6 +25,6 @@ export function OrganizerFinancePage() {
           data={mockDisbursements}
         />
       </div>
-    </DashboardShell>
+    </>
   );
 }

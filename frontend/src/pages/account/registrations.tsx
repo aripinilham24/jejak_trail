@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -9,7 +8,7 @@ export function AccountRegistrationsPage() {
   const { t } = useTranslation();
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.registrations.title')}</Heading>
       <Card>
         <CardContent>
@@ -37,6 +36,6 @@ export function AccountRegistrationsPage() {
           </div>
         </CardContent>
       </Card>
-    </DashboardShell>
+    </>
   );
 }

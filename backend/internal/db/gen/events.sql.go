@@ -12,6 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const clearEventRefundPolicy = `-- name: ClearEventRefundPolicy :exec
+UPDATE events
+SET refund_policy_id = NULL
+WHERE id = $1
+`
+
+func (q *Queries) ClearEventRefundPolicy(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, clearEventRefundPolicy, id)
+	return err
+}
+
 const countAdminEvents = `-- name: CountAdminEvents :one
 SELECT count(*)
 FROM events e
@@ -29,6 +40,27 @@ type CountAdminEventsParams struct {
 
 func (q *Queries) CountAdminEvents(ctx context.Context, arg CountAdminEventsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countAdminEvents, arg.Status, arg.EventType, arg.Q)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countEventsByOrganization = `-- name: CountEventsByOrganization :one
+SELECT count(*)
+FROM events
+WHERE organization_id = $1
+  AND ($2::text IS NULL OR status = $2::text)
+  AND ($3::text IS NULL OR title ILIKE '%' || $3::text || '%')
+`
+
+type CountEventsByOrganizationParams struct {
+	OrganizationID *uuid.UUID
+	Status         *string
+	Q              *string
+}
+
+func (q *Queries) CountEventsByOrganization(ctx context.Context, arg CountEventsByOrganizationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countEventsByOrganization, arg.OrganizationID, arg.Status, arg.Q)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -87,6 +119,19 @@ func (q *Queries) CountPublishedEvents(ctx context.Context, arg CountPublishedEv
 		arg.MaxPrice,
 		arg.RegistrationStatus,
 	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRegistrationsByEventID = `-- name: CountRegistrationsByEventID :one
+SELECT count(*)
+FROM registrations
+WHERE event_id = $1
+`
+
+func (q *Queries) CountRegistrationsByEventID(ctx context.Context, eventID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countRegistrationsByEventID, eventID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -542,6 +587,41 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteEventCategoriesByEventID = `-- name: DeleteEventCategoriesByEventID :exec
+DELETE FROM event_categories
+WHERE event_id = $1
+`
+
+func (q *Queries) DeleteEventCategoriesByEventID(ctx context.Context, eventID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEventCategoriesByEventID, eventID)
+	return err
+}
+
+const deleteRefundPolicy = `-- name: DeleteRefundPolicy :exec
+DELETE FROM refund_policies
+WHERE id = $1 AND organization_id = $2
+`
+
+type DeleteRefundPolicyParams struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+}
+
+func (q *Queries) DeleteRefundPolicy(ctx context.Context, arg DeleteRefundPolicyParams) error {
+	_, err := q.db.Exec(ctx, deleteRefundPolicy, arg.ID, arg.OrganizationID)
+	return err
+}
+
+const deleteRegistrationFormFieldsByEventID = `-- name: DeleteRegistrationFormFieldsByEventID :exec
+DELETE FROM registration_form_fields
+WHERE event_id = $1
+`
+
+func (q *Queries) DeleteRegistrationFormFieldsByEventID(ctx context.Context, eventID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRegistrationFormFieldsByEventID, eventID)
+	return err
+}
+
 const getEventByID = `-- name: GetEventByID :one
 SELECT id, organization_id, reviewed_by, event_type, title, slug, description, location_name, province, city, latitude, longitude, event_start_at, event_end_at, registration_open_at, registration_close_at, status, external_url, cover_key, route_gpx_key, route_profile, mandatory_gear, terms, is_featured, refund_policy_id, published_at, source_updated_at, created_at, updated_at
 FROM events
@@ -738,6 +818,25 @@ func (q *Queries) GetEventCategoryForUpdate(ctx context.Context, id uuid.UUID) (
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getNextRefundPolicyVersion = `-- name: GetNextRefundPolicyVersion :one
+SELECT (COALESCE(MAX(version), 0) + 1)::int AS next_version
+FROM refund_policies
+WHERE organization_id = $1
+  AND name = $2
+`
+
+type GetNextRefundPolicyVersionParams struct {
+	OrganizationID uuid.UUID
+	Name           string
+}
+
+func (q *Queries) GetNextRefundPolicyVersion(ctx context.Context, arg GetNextRefundPolicyVersionParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getNextRefundPolicyVersion, arg.OrganizationID, arg.Name)
+	var next_version int32
+	err := row.Scan(&next_version)
+	return next_version, err
 }
 
 const getPublicEventBySlug = `-- name: GetPublicEventBySlug :one
@@ -979,6 +1078,80 @@ func (q *Queries) ListEventCategoriesByEventIDs(ctx context.Context, eventIds []
 			&i.BibStart,
 			&i.BibEnd,
 			&i.BibNext,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEventsByOrganization = `-- name: ListEventsByOrganization :many
+SELECT id, organization_id, reviewed_by, event_type, title, slug, description, location_name, province, city, latitude, longitude, event_start_at, event_end_at, registration_open_at, registration_close_at, status, external_url, cover_key, route_gpx_key, route_profile, mandatory_gear, terms, is_featured, refund_policy_id, published_at, source_updated_at, created_at, updated_at
+FROM events
+WHERE organization_id = $1
+  AND ($2::text IS NULL OR status = $2::text)
+  AND ($3::text IS NULL OR title ILIKE '%' || $3::text || '%')
+ORDER BY created_at DESC
+LIMIT $5 OFFSET $4
+`
+
+type ListEventsByOrganizationParams struct {
+	OrganizationID *uuid.UUID
+	Status         *string
+	Q              *string
+	PageOffset     int32
+	PageLimit      int32
+}
+
+func (q *Queries) ListEventsByOrganization(ctx context.Context, arg ListEventsByOrganizationParams) ([]Event, error) {
+	rows, err := q.db.Query(ctx, listEventsByOrganization,
+		arg.OrganizationID,
+		arg.Status,
+		arg.Q,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Event{}
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.ReviewedBy,
+			&i.EventType,
+			&i.Title,
+			&i.Slug,
+			&i.Description,
+			&i.LocationName,
+			&i.Province,
+			&i.City,
+			&i.Latitude,
+			&i.Longitude,
+			&i.EventStartAt,
+			&i.EventEndAt,
+			&i.RegistrationOpenAt,
+			&i.RegistrationCloseAt,
+			&i.Status,
+			&i.ExternalUrl,
+			&i.CoverKey,
+			&i.RouteGpxKey,
+			&i.RouteProfile,
+			&i.MandatoryGear,
+			&i.Terms,
+			&i.IsFeatured,
+			&i.RefundPolicyID,
+			&i.PublishedAt,
+			&i.SourceUpdatedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1532,6 +1705,22 @@ func (q *Queries) ReviewEvent(ctx context.Context, arg ReviewEventParams) (Event
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const setEventRefundPolicy = `-- name: SetEventRefundPolicy :exec
+UPDATE events
+SET refund_policy_id = $1
+WHERE id = $2
+`
+
+type SetEventRefundPolicyParams struct {
+	RefundPolicyID *uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) SetEventRefundPolicy(ctx context.Context, arg SetEventRefundPolicyParams) error {
+	_, err := q.db.Exec(ctx, setEventRefundPolicy, arg.RefundPolicyID, arg.ID)
+	return err
 }
 
 const setEventStatus = `-- name: SetEventStatus :one

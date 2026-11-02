@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { mockTeam } from '@/lib/mock/data';
@@ -15,9 +14,9 @@ export function OrganizerTeamPage() {
   const { t } = useTranslation();
 
   return (
-    <DashboardShell role="organizer">
+    <>
       <Heading className='mb-6'>{t('organizer.team')}</Heading>
       <DataTable columns={columns} data={mockTeam} />
-    </DashboardShell>
+    </>
   );
 }

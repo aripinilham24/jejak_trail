@@ -1,6 +1,5 @@
 
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ export function AccountTicketsPage() {
   const { t } = useTranslation();
 
   return (
-    <DashboardShell role="attendee">
+    <>
       <Heading className='mb-6'>{t('account.tickets.title')}</Heading>
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
         {mockTickets.map((ticket) => (
@@ -32,6 +31,6 @@ export function AccountTicketsPage() {
           </Card>
         ))}
       </div>
-    </DashboardShell>
+    </>
   );
 }

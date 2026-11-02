@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,7 +9,7 @@ export function OrganizerProfilePage() {
   const user = mockUserProfile;
 
   return (
-    <DashboardShell role="organizer">
+    <>
       <Heading className='mb-6'>{t('organizer.profile')}</Heading>
       <Card className='max-w-2xl'>
         <CardHeader>
@@ -27,6 +26,6 @@ export function OrganizerProfilePage() {
           </div>
         </CardContent>
       </Card>
-    </DashboardShell>
+    </>
   );
 }
