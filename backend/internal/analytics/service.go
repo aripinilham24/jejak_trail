@@ -82,7 +82,7 @@ func (s *Service) OrganizerDashboard(ctx context.Context, organizationID uuid.UU
 		Money: MoneyDTO{
 			Collected: money.Collected,
 			Disbursed: money.Disbursed,
-			Held:      money.Collected - money.Disbursed,
+			Held:      money.Collected - money.Refunded - money.Disbursed,
 			Estimated: money.Collected,
 		},
 	}

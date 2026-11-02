@@ -18,8 +18,8 @@ SELECT
     (SELECT count(*)::int FROM events WHERE event_type = 'native') AS native_events,
     (SELECT count(*)::int FROM events WHERE event_type = 'external') AS external_events,
     (SELECT count(*)::int FROM registrations) AS total_registrations,
-    COALESCE((SELECT sum(amount) FROM payments WHERE status = 'paid'), 0)::bigint AS gmv,
-    COALESCE((SELECT sum(platform_fee) FROM payments WHERE status = 'paid'), 0)::bigint AS platform_revenue,
+    COALESCE((SELECT sum(amount) FROM payments WHERE status IN ('paid', 'partially_refunded')), 0)::bigint AS gmv,
+    COALESCE((SELECT sum(platform_fee) FROM payments WHERE status IN ('paid', 'partially_refunded')), 0)::bigint AS platform_revenue,
     (SELECT count(*)::int FROM organizations WHERE verification_status = 'pending') AS pending_organizations,
     (SELECT count(*)::int FROM events WHERE status = 'pending_review') AS pending_events,
     (SELECT count(*)::int FROM disputes WHERE status IN ('open', 'in_review')) AS open_disputes
@@ -515,24 +515,32 @@ SELECT
         FROM payments p
         JOIN registrations r ON r.id = p.registration_id
         JOIN events e ON e.id = r.event_id
-        WHERE e.organization_id = $1 AND p.status = 'paid'
+        WHERE e.organization_id = $1 AND p.status IN ('paid', 'partially_refunded')
     ), 0)::bigint AS collected,
     COALESCE((
         SELECT sum(d.amount)
         FROM disbursements d
         WHERE d.organization_id = $1 AND d.status = 'paid'
-    ), 0)::bigint AS disbursed
+    ), 0)::bigint AS disbursed,
+    COALESCE((
+        SELECT sum(rf.amount)
+        FROM refunds rf
+        JOIN registrations r ON r.id = rf.registration_id
+        JOIN events e ON e.id = r.event_id
+        WHERE e.organization_id = $1 AND rf.status = 'refunded'
+    ), 0)::bigint AS refunded
 `
 
 type OrganizerMoneyRow struct {
 	Collected int64
 	Disbursed int64
+	Refunded  int64
 }
 
 func (q *Queries) OrganizerMoney(ctx context.Context, organizationID *uuid.UUID) (OrganizerMoneyRow, error) {
 	row := q.db.QueryRow(ctx, organizerMoney, organizationID)
 	var i OrganizerMoneyRow
-	err := row.Scan(&i.Collected, &i.Disbursed)
+	err := row.Scan(&i.Collected, &i.Disbursed, &i.Refunded)
 	return i, err
 }
 

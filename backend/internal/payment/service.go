@@ -470,3 +470,23 @@ func (s *Service) createPendingPayment(ctx context.Context, q *gen.Queries, regi
 }
 
 func strPtr(value string) *string { return &value }
+
+func (s *Service) PromoteWaitlist(ctx context.Context, categoryID uuid.UUID) error {
+	var jobs []notificationJob
+	err := s.db.WithTx(ctx, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		created, err := s.promoteWaitlist(ctx, q, categoryID)
+		if err != nil {
+			return err
+		}
+		jobs = created
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, job := range jobs {
+		s.notifier.Notify(ctx, "attendee", job.recipientID, job.email, job.template, job.title, job.body)
+	}
+	return nil
+}

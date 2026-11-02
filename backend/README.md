@@ -104,8 +104,20 @@ Sudah berjalan end-to-end:
 - Export CSV peserta (termasuk jawaban form; data sensitif didekripsi untuk organizer berwenang).
 - Broadcast pengumuman ke peserta lunas/checked-in via email + in-app, tersimpan di riwayat.
 - Notifikasi in-app: daftar, tanda baca satu, tandai semua.
+- Refund: kalkulasi dari kebijakan snapshot, proses mock, update status pembayaran/registrasi, revoke tiket, promosi waitlist bila slot dilepas.
+- Pencairan bertahap: validasi dana terkumpul & batas persentase, pembuatan per stage, approval/hold admin finance, riwayat organizer.
+- Sengketa: peserta membuat laporan, admin review/resolve/reject, audit trail.
+- Finance dashboard admin/organizer, dan UI audit log.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR, check-in racepack (online/offline), dashboard organizer/admin, export CSV, broadcast, dan notifikasi in-app sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR, check-in racepack (online/offline), dashboard organizer/admin, export CSV, broadcast, notifikasi in-app, refund, pencairan, sengketa, finance, dan audit log sudah memakai API.
+
+### Aturan penting refund, pencairan, dan sengketa
+
+- Refund hanya untuk pembayaran `paid`/`partially_refunded`; nominal dibatasi sisa pembayaran dan persentase kebijakan snapshot (event cancelled/payment error/overbooked = 100%).
+- Refund penuh mengubah registrasi menjadi `refunded`, mencabut tiket, dan mempromosikan waitlist.
+- Pencairan dihitung dari dana terkumpul bersih (pembayaran paid/partial dikurangi refund), dibatasi persentase stage dan kumulatif pencairan.
+- Pencairan baru berstatus `eligible`; admin finance menyetujui (paid + payout ref) atau menahan (held).
+- Sengketa hanya dapat dibuat peserta untuk event/registrasi miliknya; keputusan admin wajib menyertakan resolusi dan tercatat di audit log.
 
 ### Aturan penting dashboard dan komunikasi
 
@@ -197,7 +209,23 @@ GET    /api/v1/organizer/events/:id/participants/export
 GET    /api/v1/organizer/events/:id/broadcasts
 POST   /api/v1/organizer/events/:id/broadcasts
 GET    /api/v1/organizer/dashboard
+GET    /api/v1/organizer/finance
+GET    /api/v1/organizer/disbursements
 GET    /api/v1/admin/dashboard
+GET    /api/v1/admin/finance
+GET    /api/v1/admin/refunds
+POST   /api/v1/admin/registrations/:id/refund
+GET    /api/v1/admin/disbursements
+POST   /api/v1/admin/events/:id/disbursements
+POST   /api/v1/admin/disbursements/:id/approve
+POST   /api/v1/admin/disbursements/:id/hold
+GET    /api/v1/admin/disputes
+POST   /api/v1/admin/disputes/:id/review
+POST   /api/v1/admin/disputes/:id/resolve
+POST   /api/v1/admin/disputes/:id/reject
+GET    /api/v1/admin/audit-logs
+GET    /api/v1/account/disputes
+POST   /api/v1/account/disputes
 GET    /api/v1/account/notifications
 POST   /api/v1/account/notifications/:id/read
 POST   /api/v1/account/notifications/read-all
@@ -222,6 +250,6 @@ satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Refund, pencairan dana bertahap, sengketa, dashboard keuangan organizer/admin, audit log UI.
+- Hardening: rate limit, security header/CSP, observability, backup, OpenAPI formal, integration test, Docker image deploy.
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

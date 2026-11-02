@@ -20,7 +20,9 @@ import (
 	"github.com/aripinilham/jejak_trail/backend/internal/config"
 	"github.com/aripinilham/jejak_trail/backend/internal/db"
 	"github.com/aripinilham/jejak_trail/backend/internal/db/gen"
+	"github.com/aripinilham/jejak_trail/backend/internal/dispute"
 	"github.com/aripinilham/jejak_trail/backend/internal/event"
+	"github.com/aripinilham/jejak_trail/backend/internal/finance"
 	"github.com/aripinilham/jejak_trail/backend/internal/notification"
 	"github.com/aripinilham/jejak_trail/backend/internal/notifyapi"
 	"github.com/aripinilham/jejak_trail/backend/internal/payment"
@@ -107,9 +109,15 @@ func run() error {
 	broadcastService := broadcast.NewService(database, notifier)
 	broadcastHandler := broadcast.NewHandler(broadcastService, genQueries(database))
 
+	financeService := finance.NewService(database, cfg, auditWriter, notifier, paymentService)
+	financeHandler := finance.NewHandler(financeService, genQueries(database))
+	disputeService := dispute.NewService(database, auditWriter)
+	disputeHandler := dispute.NewHandler(disputeService, genQueries(database))
+	auditHandler := audit.NewHandler(genQueries(database))
+
 	go runPaymentExpiry(ctx, paymentService, logger)
 
-	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, checkinHandler, analyticsHandler, notificationHandler, broadcastHandler, store)
+	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, checkinHandler, analyticsHandler, notificationHandler, broadcastHandler, financeHandler, disputeHandler, auditHandler, store)
 
 	logger.Info("starting api",
 		"app", cfg.AppName,
@@ -142,6 +150,9 @@ func newApp(
 	analyticsHandler *analytics.Handler,
 	notificationHandler *notifyapi.Handler,
 	broadcastHandler *broadcast.Handler,
+	financeHandler *finance.Handler,
+	disputeHandler *dispute.Handler,
+	auditHandler *audit.Handler,
 	store storage.Storage,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -212,6 +223,8 @@ func newApp(
 	account.Get("/notifications", notificationHandler.ListMine)
 	account.Post("/notifications/:id/read", notificationHandler.MarkRead)
 	account.Post("/notifications/read-all", notificationHandler.MarkAllRead)
+	account.Get("/disputes", disputeHandler.ListMine)
+	account.Post("/disputes", disputeHandler.Create)
 
 	api.Post("/webhooks/payments/:gateway", paymentHandler.Webhook)
 	api.Post("/dev/payments/:orderId/simulate", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulatePaid)
@@ -242,9 +255,23 @@ func newApp(
 	organizer.Get("/events/:id/participants/export", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerExport)
 	organizer.Get("/events/:id/broadcasts", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), broadcastHandler.List)
 	organizer.Post("/events/:id/broadcasts", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), broadcastHandler.Create)
+	organizer.Get("/finance", financeHandler.OrganizerSummary)
+	organizer.Get("/disbursements", auth.RequireRole(auth.RoleOwner, auth.RoleFinance), financeHandler.OrganizerDisbursements)
 
 	admin := api.Group("/admin", auth.RequireAuth(tokens, auth.AccountAdmin))
 	admin.Get("/dashboard", analyticsHandler.Admin)
+	admin.Get("/finance", financeHandler.AdminSummary)
+	admin.Get("/refunds", financeHandler.ListRefunds)
+	admin.Post("/registrations/:id/refund", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleFinance), financeHandler.CreateRefund)
+	admin.Get("/disbursements", financeHandler.ListDisbursements)
+	admin.Post("/events/:id/disbursements", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleFinance), financeHandler.CreateDisbursement)
+	admin.Post("/disbursements/:id/approve", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleFinance), financeHandler.ApproveDisbursement)
+	admin.Post("/disbursements/:id/hold", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleFinance), financeHandler.HoldDisbursement)
+	admin.Get("/disputes", disputeHandler.AdminList)
+	admin.Post("/disputes/:id/review", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleSupport), disputeHandler.Review)
+	admin.Post("/disputes/:id/resolve", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleSupport), disputeHandler.Resolve)
+	admin.Post("/disputes/:id/reject", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleSupport), disputeHandler.Reject)
+	admin.Get("/audit-logs", auditHandler.List)
 	admin.Get("/events", eventHandler.AdminList)
 	admin.Get("/events/:id", eventHandler.AdminGet)
 	admin.Post("/events/:id/review", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleSupport), eventHandler.Review)

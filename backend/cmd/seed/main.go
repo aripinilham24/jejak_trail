@@ -453,6 +453,34 @@ func seed(ctx context.Context, tx pgx.Tx, passwordHash string, encryptor *crypto
 		}
 	}
 
+	// Pencairan tahap 1 (eligible) untuk demo admin finance
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO disbursements (
+			id, event_id, organization_id, bank_account_id, stage, percentage,
+			amount, status, requested_at, note
+		) VALUES ($1, $2, $3, $4, 1, 10, 1260000, 'eligible', $5, 'Pencairan tahap 1 (demo)')
+	`, "00000000-0000-0000-0000-0000000007d0", eventSundoroID, orgID, bankAccountID, now.AddDate(0, 0, -1)); err != nil {
+		return fmt.Errorf("insert disbursement: %w", err)
+	}
+
+	// Sengketa contoh
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO disputes (
+			id, event_id, reporter_type, reporter_id, reporter_name,
+			dispute_type, description, status, created_at
+		) VALUES ($1, $2, 'user', $3, 'Aripin Ilham', 'payment', 'Pembayaran sudah dilakukan tetapi status belum berubah.', 'open', $4)
+	`, "00000000-0000-0000-0000-0000000007e0", eventSundoroID, attendeeID, now.AddDate(0, 0, -2)); err != nil {
+		return fmt.Errorf("insert dispute: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO disputes (
+			id, event_id, reporter_type, reporter_id, reporter_name,
+			dispute_type, description, status, handled_by, created_at
+		) VALUES ($1, $2, 'user', $3, 'Aripin Ilham', 'refund', 'Refund belum diterima setelah 14 hari.', 'in_review', $4, $5)
+	`, "00000000-0000-0000-0000-0000000007e1", eventSundoroID, attendeeID, adminID, now.AddDate(0, 0, -1)); err != nil {
+		return fmt.Errorf("insert dispute 2: %w", err)
+	}
+
 	// Notifikasi contoh untuk attendee utama
 	for i, n := range []struct {
 		title, body, key string

@@ -608,3 +608,187 @@ export function useExportParticipants() {
       api.download(`/organizer/events/${eventId}/participants/export`, filename),
   })
 }
+
+export interface FinanceSummary {
+  gmv: number
+  platformRevenue: number
+  collected: number
+  refunded: number
+  disbursed: number
+  held: number
+  pendingDisbursements: number
+  pendingRefunds: number
+}
+
+export interface RefundItem {
+  id: string
+  paymentId: string
+  registrationId: string
+  amount: number
+  reasonType: string
+  status: string
+  gatewayRef?: string
+  feeBorneBy: string
+  requestedAt: string
+  processedAt?: string
+  note?: string
+  eventTitle: string
+  organizationName: string
+  participantName: string
+  orderId: string
+}
+
+export interface DisbursementItem {
+  id: string
+  eventId: string
+  organizationId: string
+  stage: number
+  percentage: number
+  amount: number
+  status: string
+  approvedBy?: string
+  requestedAt?: string
+  approvedAt?: string
+  paidAt?: string
+  payoutRef?: string
+  note?: string
+  createdAt: string
+  eventTitle: string
+  organizationName?: string
+  bankName?: string
+  accountNumberLast4?: string
+}
+
+export interface DisputeItem {
+  id: string
+  eventId: string
+  eventTitle: string
+  registrationId?: string
+  reporterType: string
+  reporterName: string
+  disputeType: string
+  description: string
+  status: string
+  resolution?: string
+  createdAt: string
+  resolvedAt?: string
+}
+
+export interface AuditItem {
+  id: string
+  actorType: string
+  actorName: string
+  action: string
+  entityType: string
+  entityId?: string
+  before?: Record<string, unknown>
+  after?: Record<string, unknown>
+  ipAddress?: string
+  createdAt: string
+}
+
+export function useAdminFinance() {
+  return useQuery({
+    queryKey: ["admin-finance"],
+    queryFn: () => api.get<FinanceSummary>("/admin/finance"),
+  })
+}
+
+export function useOrganizerFinance() {
+  return useQuery({
+    queryKey: ["organizer-finance"],
+    queryFn: () => api.get<FinanceSummary>("/organizer/finance"),
+  })
+}
+
+export function useAdminRefunds(status?: string) {
+  return useQuery({
+    queryKey: ["admin-refunds", status],
+    queryFn: () => api.list<RefundItem>(`/admin/refunds${toQuery({ status })}`),
+  })
+}
+
+export function useCreateRefund() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ registrationId, reasonType, amount, note }: {
+      registrationId: string
+      reasonType: string
+      amount?: number
+      note?: string
+    }) => api.post<RefundItem>(`/admin/registrations/${registrationId}/refund`, { reasonType, amount, note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-refunds"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-finance"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+    },
+  })
+}
+
+export function useAdminDisbursements() {
+  return useQuery({
+    queryKey: ["admin-disbursements"],
+    queryFn: () => api.list<DisbursementItem>("/admin/disbursements"),
+  })
+}
+
+export function useOrganizerDisbursements() {
+  return useQuery({
+    queryKey: ["organizer-disbursements"],
+    queryFn: () => api.list<DisbursementItem>("/organizer/disbursements"),
+  })
+}
+
+export function useCreateDisbursement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ eventId, stage, percentage, note }: {
+      eventId: string
+      stage: number
+      percentage: number
+      note?: string
+    }) => api.post<DisbursementItem>(`/admin/events/${eventId}/disbursements`, { stage, percentage, note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-disbursements"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-finance"] })
+    },
+  })
+}
+
+export function useReviewDisbursement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, approve, note }: { id: string; approve: boolean; note?: string }) =>
+      api.post<DisbursementItem>(`/admin/disbursements/${id}/${approve ? "approve" : "hold"}`, { note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-disbursements"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-finance"] })
+    },
+  })
+}
+
+export function useAdminDisputes() {
+  return useQuery({
+    queryKey: ["admin-disputes"],
+    queryFn: () => api.list<DisputeItem>("/admin/disputes"),
+  })
+}
+
+export function useReviewDispute() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, action, resolution }: { id: string; action: "review" | "resolve" | "reject"; resolution?: string }) =>
+      api.post<DisputeItem>(`/admin/disputes/${id}/${action}`, { resolution }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-disputes"] })
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] })
+    },
+  })
+}
+
+export function useAuditLogs(params: { actorType?: string; entityType?: string; page?: number; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ["audit-logs", params],
+    queryFn: () => api.list<AuditItem>(`/admin/audit-logs${toQuery(params)}`),
+  })
+}
