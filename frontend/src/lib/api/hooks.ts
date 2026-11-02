@@ -492,3 +492,119 @@ export function useSyncCheckins() {
     },
   })
 }
+
+export interface OrganizerDashboardData {
+  registrationsByCategory: { category: string; terisi: number; kuota: number }[]
+  registrationTrend: { date: string; pendaftar: number; lunas: number }[]
+  jerseyRecap: { size: string; count: number }[]
+  money: { collected: number; disbursed: number; held: number; estimated: number }
+  pendingVerifications: number
+  paidRegistrations: number
+}
+
+export interface AdminDashboardData {
+  totalEvents: number
+  nativeEvents: number
+  externalEvents: number
+  totalRegistrations: number
+  gmv: number
+  platformRevenue: number
+  pendingOrganizations: number
+  pendingEvents: number
+  openDisputes: number
+  growth: { month: string; users: number; registrations: number; gmv: number }[]
+  eventMix: { name: string; value: number; color: string }[]
+}
+
+export function useOrganizerDashboard() {
+  return useQuery({
+    queryKey: ["organizer-dashboard"],
+    queryFn: () => api.get<OrganizerDashboardData>("/organizer/dashboard"),
+  })
+}
+
+export function useAdminDashboard(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: () => api.get<AdminDashboardData>("/admin/dashboard"),
+    enabled: options.enabled ?? true,
+  })
+}
+
+export interface AppNotification {
+  id: string
+  recipientType: string
+  recipientId: string
+  channel: "email" | "whatsapp" | "in_app"
+  templateKey: string
+  title: string
+  body: string
+  status: string
+  readAt?: string
+  sentAt?: string
+  createdAt: string
+}
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api.list<AppNotification>("/account/notifications"),
+  })
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/account/notifications/${id}/read`, {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+    },
+  })
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post("/account/notifications/read-all", {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+    },
+  })
+}
+
+export interface BroadcastItem {
+  id: string
+  eventId: string
+  sentByName: string
+  channel: string
+  subject: string
+  message: string
+  recipients: number
+  sentAt: string
+}
+
+export function useBroadcasts(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["broadcasts", eventId],
+    queryFn: () => api.list<BroadcastItem>(`/organizer/events/${eventId}/broadcasts`),
+    enabled: Boolean(eventId),
+  })
+}
+
+export function useCreateBroadcast(eventId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { channel: string; subject: string; message: string }) =>
+      api.post<BroadcastItem>(`/organizer/events/${eventId}/broadcasts`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["broadcasts", eventId] })
+    },
+  })
+}
+
+export function useExportParticipants() {
+  return useMutation({
+    mutationFn: ({ eventId, filename }: { eventId: string; filename: string }) =>
+      api.download(`/organizer/events/${eventId}/participants/export`, filename),
+  })
+}

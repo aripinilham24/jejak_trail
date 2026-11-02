@@ -29,6 +29,7 @@ type Meta struct {
 	Limit      int   `json:"limit"`
 	Total      int64 `json:"total"`
 	TotalPages int   `json:"totalPages"`
+	Unread     int64 `json:"unread,omitempty"`
 }
 
 type dataEnvelope struct {

@@ -1,7 +1,9 @@
 package registration
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -741,6 +743,20 @@ func ageAt(birthDate, at time.Time) int {
 	return years
 }
 
+func derefString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func formatTime(value *time.Time) string {
+	if value == nil {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339)
+}
+
 func validUserFileKey(userID uuid.UUID, key string) bool {
 	return strings.HasPrefix(key, "attendee/"+userID.String()+"/")
 }
@@ -766,4 +782,73 @@ func (s *Service) OrganizerName(ctx context.Context, id uuid.UUID) string {
 		return "Organizer"
 	}
 	return organizer.FullName
+}
+
+func (s *Service) ExportParticipantsCSV(ctx context.Context, organizationID, eventID uuid.UUID) ([]byte, string, error) {
+	event, err := s.q.GetEventByIDForOrganization(ctx, gen.GetEventByIDForOrganizationParams{
+		ID:             eventID,
+		OrganizationID: &organizationID,
+	})
+	if err != nil {
+		return nil, "", apperr.NotFound("Event tidak ditemukan.")
+	}
+
+	fields, err := s.q.ListRegistrationFormFieldsByEventID(ctx, eventID)
+	if err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+	rows, err := s.q.ListEventRegistrationExport(ctx, eventID)
+	if err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+	header := []string{"Nama", "Email", "Telepon", "Kategori", "Status", "BIB", "Harga", "Terdaftar", "Dibayar"}
+	for _, field := range fields {
+		header = append(header, field.Label)
+	}
+	if err := writer.Write(header); err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+
+	for _, row := range rows {
+		answers, err := s.q.ListRegistrationAnswersByRegistration(ctx, row.ID)
+		if err != nil {
+			return nil, "", apperr.Internal(err)
+		}
+		values := map[uuid.UUID]string{}
+		for _, answer := range answers {
+			value := answer.Value
+			if answer.IsEncrypted {
+				if decrypted, err := s.decrypt(answer.Value); err == nil {
+					value = decrypted
+				}
+			}
+			values[answer.FieldID] = value
+		}
+
+		record := []string{
+			row.FullNameSnapshot,
+			row.Email,
+			derefString(row.Phone),
+			row.CategoryName,
+			row.Status,
+			derefString(row.BibNumber),
+			strconv.FormatInt(row.PriceAmount, 10),
+			formatTime(row.SubmittedAt),
+			formatTime(row.PaidAt),
+		}
+		for _, field := range fields {
+			record = append(record, values[field.ID])
+		}
+		if err := writer.Write(record); err != nil {
+			return nil, "", apperr.Internal(err)
+		}
+	}
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+	return buf.Bytes(), event.Slug + "-participants.csv", nil
 }

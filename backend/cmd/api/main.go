@@ -12,14 +12,17 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"github.com/aripinilham/jejak_trail/backend/internal/analytics"
 	"github.com/aripinilham/jejak_trail/backend/internal/audit"
 	"github.com/aripinilham/jejak_trail/backend/internal/auth"
+	"github.com/aripinilham/jejak_trail/backend/internal/broadcast"
 	"github.com/aripinilham/jejak_trail/backend/internal/checkin"
 	"github.com/aripinilham/jejak_trail/backend/internal/config"
 	"github.com/aripinilham/jejak_trail/backend/internal/db"
 	"github.com/aripinilham/jejak_trail/backend/internal/db/gen"
 	"github.com/aripinilham/jejak_trail/backend/internal/event"
 	"github.com/aripinilham/jejak_trail/backend/internal/notification"
+	"github.com/aripinilham/jejak_trail/backend/internal/notifyapi"
 	"github.com/aripinilham/jejak_trail/backend/internal/payment"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/crypto"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/httpx"
@@ -95,9 +98,18 @@ func run() error {
 	checkinService := checkin.NewService(database, logger)
 	checkinHandler := checkin.NewHandler(checkinService, genQueries(database))
 
+	analyticsService := analytics.NewService(database)
+	analyticsHandler := analytics.NewHandler(analyticsService)
+
+	notificationService := notification.NewService(database)
+	notificationHandler := notifyapi.NewHandler(notificationService)
+
+	broadcastService := broadcast.NewService(database, notifier)
+	broadcastHandler := broadcast.NewHandler(broadcastService, genQueries(database))
+
 	go runPaymentExpiry(ctx, paymentService, logger)
 
-	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, checkinHandler, store)
+	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, checkinHandler, analyticsHandler, notificationHandler, broadcastHandler, store)
 
 	logger.Info("starting api",
 		"app", cfg.AppName,
@@ -127,6 +139,9 @@ func newApp(
 	uploadHandler *upload.Handler,
 	paymentHandler *payment.Handler,
 	checkinHandler *checkin.Handler,
+	analyticsHandler *analytics.Handler,
+	notificationHandler *notifyapi.Handler,
+	broadcastHandler *broadcast.Handler,
 	store storage.Storage,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -194,6 +209,9 @@ func newApp(
 	account.Get("/registrations/:id", registrationHandler.GetMine)
 	account.Get("/tickets", paymentHandler.ListTickets)
 	account.Get("/tickets/:id", paymentHandler.GetTicket)
+	account.Get("/notifications", notificationHandler.ListMine)
+	account.Post("/notifications/:id/read", notificationHandler.MarkRead)
+	account.Post("/notifications/read-all", notificationHandler.MarkAllRead)
 
 	api.Post("/webhooks/payments/:gateway", paymentHandler.Webhook)
 	api.Post("/dev/payments/:orderId/simulate", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulatePaid)
@@ -208,6 +226,7 @@ func newApp(
 	api.Get("/meta/discovery-filters", eventHandler.Meta)
 
 	organizer := api.Group("/organizer", auth.RequireAuth(tokens, auth.AccountOrganizer))
+	organizer.Get("/dashboard", analyticsHandler.Organizer)
 	organizer.Get("/events", eventHandler.OrganizerList)
 	organizer.Post("/events", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerCreate)
 	organizer.Get("/events/:id", eventHandler.OrganizerGet)
@@ -220,8 +239,12 @@ func newApp(
 	organizer.Get("/events/:id/checkin/manifest", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Manifest)
 	organizer.Post("/checkin/scan", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Scan)
 	organizer.Post("/checkin/sync", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Sync)
+	organizer.Get("/events/:id/participants/export", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerExport)
+	organizer.Get("/events/:id/broadcasts", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), broadcastHandler.List)
+	organizer.Post("/events/:id/broadcasts", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), broadcastHandler.Create)
 
 	admin := api.Group("/admin", auth.RequireAuth(tokens, auth.AccountAdmin))
+	admin.Get("/dashboard", analyticsHandler.Admin)
 	admin.Get("/events", eventHandler.AdminList)
 	admin.Get("/events/:id", eventHandler.AdminGet)
 	admin.Post("/events/:id/review", auth.RequireRole(auth.RoleSuperAdmin, auth.RoleSupport), eventHandler.Review)

@@ -16,6 +16,7 @@ export interface ApiMeta {
   limit: number
   total: number
   totalPages: number
+  unread?: number
 }
 
 export interface ListResponse<T> {
@@ -155,8 +156,35 @@ async function requestList<T>(path: string, options: RequestOptions = {}): Promi
   return readJson<ListResponse<T>>(res)
 }
 
+async function download(path: string, filename: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    let payload: ErrorPayload = {}
+    try { payload = JSON.parse(text) as ErrorPayload } catch { /* ignore */ }
+    throw new ApiError(
+      res.status,
+      payload.error?.code ?? "unknown_error",
+      payload.error?.message ?? "Gagal mengunduh berkas.",
+      payload.error?.fields,
+      payload.error?.requestId,
+    )
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  download,
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),

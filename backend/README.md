@@ -99,8 +99,21 @@ Sudah berjalan end-to-end:
 - Pasca-lunas: BIB otomatis per kategori (atomik), data terkunci, tiket QR unik, halaman tiket dengan QR asli.
 - Waitlist: promosi otomatis ke `awaiting_payment`/`pending_verification` saat pembayaran kedaluwarsa.
 - Check-in racepack: manifest event, scan QR online, penolakan scan ganda dengan info scan sebelumnya, check-in perwakilan, antrean offline + sinkronisasi idempoten.
+- Dashboard organizer: kuota per kategori, tren pendaftaran 30 hari, rekap jersey, saldo terkumpul/dicairkan/ditahan.
+- Dashboard admin: GMV, pendapatan platform, jumlah event/pendaftaran, antrean verifikasi, pertumbuhan 6 bulan, komposisi event.
+- Export CSV peserta (termasuk jawaban form; data sensitif didekripsi untuk organizer berwenang).
+- Broadcast pengumuman ke peserta lunas/checked-in via email + in-app, tersimpan di riwayat.
+- Notifikasi in-app: daftar, tanda baca satu, tandai semua.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR, halaman check-in racepack (online/offline) sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR, check-in racepack (online/offline), dashboard organizer/admin, export CSV, broadcast, dan notifikasi in-app sudah memakai API.
+
+### Aturan penting dashboard dan komunikasi
+
+- Dashboard organizer dihitung dari event milik organisasi; saldo `held = collected - disbursed`.
+- Dashboard admin memakai agregat seluruh platform; `GMV` dan `revenue` hanya dari pembayaran `paid`.
+- Export CSV memuat kolom dasar + seluruh field form event; data sensitif didekripsi hanya untuk organizer pemilik event.
+- Broadcast hanya mengirim ke peserta `paid`/`checked_in`; channel `email` (email + in-app) atau `in_app`.
+- Notifikasi in-app disimpan di tabel `notifications`; penandaan baca dibatasi pada pemilik notifikasi.
 
 ### Aturan penting check-in racepack
 
@@ -180,6 +193,14 @@ POST   /api/v1/organizer/registrations/:id/reject
 GET    /api/v1/organizer/events/:id/checkin/manifest
 POST   /api/v1/organizer/checkin/scan
 POST   /api/v1/organizer/checkin/sync
+GET    /api/v1/organizer/events/:id/participants/export
+GET    /api/v1/organizer/events/:id/broadcasts
+POST   /api/v1/organizer/events/:id/broadcasts
+GET    /api/v1/organizer/dashboard
+GET    /api/v1/admin/dashboard
+GET    /api/v1/account/notifications
+POST   /api/v1/account/notifications/:id/read
+POST   /api/v1/account/notifications/read-all
 
 GET    /api/v1/admin/organizations
 GET    /api/v1/admin/organizations/:id
@@ -201,7 +222,6 @@ satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Dashboard organizer/admin, export CSV, broadcast pengumuman, notifikasi in-app.
-- Refund, pencairan dana bertahap, sengketa, dashboard keuangan.
+- Refund, pencairan dana bertahap, sengketa, dashboard keuangan organizer/admin, audit log UI.
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

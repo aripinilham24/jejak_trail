@@ -250,3 +250,21 @@ func validStatus(status string) bool {
 		return false
 	}
 }
+
+func (h *Handler) OrganizerExport(c fiber.Ctx) error {
+	orgID, _, _, err := h.organizerActor(c)
+	if err != nil {
+		return err
+	}
+	eventID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return apperr.NotFound("Event tidak ditemukan.")
+	}
+	content, filename, err := h.service.ExportParticipantsCSV(c.Context(), orgID, eventID)
+	if err != nil {
+		return err
+	}
+	c.Set(fiber.HeaderContentType, "text/csv; charset=utf-8")
+	c.Set(fiber.HeaderContentDisposition, `attachment; filename="`+filename+`"`)
+	return c.Send(content)
+}

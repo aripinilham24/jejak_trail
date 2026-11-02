@@ -13,7 +13,7 @@ import { LanguageToggle } from "@/components/layout/language-toggle"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { NAV_BY_ROLE, ROLE_HOME } from "@/components/layout/nav-config"
 import { useAuth } from "@/lib/auth/auth-context"
-import { useAdminEvents, useAdminOrganizations } from "@/lib/api/hooks"
+import { useAdminDashboard, useAdminEvents, useAdminOrganizations } from "@/lib/api/hooks"
 import { useDb } from "@/lib/mock/store"
 import { useIdentity } from "@/lib/session"
 import { cn } from "@/lib/utils"
@@ -39,6 +39,7 @@ function useBadges(role: AccountType): Partial<Record<string, number>> {
     limit: 1,
     enabled: role === "admin",
   })
+  const adminDashboard = useAdminDashboard({ enabled: role === "admin" })
 
   if (role === "organizer") {
     const eventIds = new Set(
@@ -52,9 +53,9 @@ function useBadges(role: AccountType): Partial<Record<string, number>> {
   }
   if (role === "admin") {
     return {
-      pendingOrgs: pendingOrgs.data?.meta.total ?? 0,
-      pendingEvents: pendingEvents.data?.meta.total ?? 0,
-      openDisputes: db.disputes.filter((d) => d.status === "open" || d.status === "in_review").length,
+      pendingOrgs: adminDashboard.data?.pendingOrganizations ?? pendingOrgs.data?.meta.total ?? 0,
+      pendingEvents: adminDashboard.data?.pendingEvents ?? pendingEvents.data?.meta.total ?? 0,
+      openDisputes: adminDashboard.data?.openDisputes ?? 0,
     }
   }
   return {}
