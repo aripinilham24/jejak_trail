@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 
@@ -90,4 +91,18 @@ func CORS(origins []string) fiber.Handler {
 
 func SecurityHeaders() fiber.Handler {
 	return helmet.New()
+}
+
+// RateLimit membatasi request per IP dalam jendela waktu tertentu.
+func RateLimit(max int, window time.Duration) fiber.Handler {
+	return limiter.New(limiter.Config{
+		Max:        max,
+		Expiration: window,
+		KeyGenerator: func(c fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c fiber.Ctx) error {
+			return apperr.RateLimited("")
+		},
+	})
 }

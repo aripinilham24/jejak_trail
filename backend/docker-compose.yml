@@ -48,6 +48,57 @@ services:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"
 
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jejak-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-jejak-trail-api}
+      APP_PORT: "8080"
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER:-jejak}:${POSTGRES_PASSWORD:-jejak}@postgres:5432/${POSTGRES_DB:-jejak}?sslmode=disable
+      DB_MAX_CONNS: ${DB_MAX_CONNS:-20}
+      DB_MIN_CONNS: ${DB_MIN_CONNS:-2}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-only-access-secret-change-me-0123456789}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-720h}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-jt_refresh}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-GXJSdOf2qv0FU4MGkgu/OMqofV9QG5hycwqWdYdUHec=}
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-jejak-private}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_USE_PATH_STYLE: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-Jejak Trail <no-reply@jejak.local>}
+      PAYMENT_DRIVER: ${PAYMENT_DRIVER:-mock}
+      MOCK_WEBHOOK_SECRET: ${MOCK_WEBHOOK_SECRET:-mock-webhook-secret-dev}
+      PAYMENT_WINDOW: ${PAYMENT_WINDOW:-24h}
+      VERIFICATION_WINDOW: ${VERIFICATION_WINDOW:-72h}
+      PLATFORM_FEE_BPS: ${PLATFORM_FEE_BPS:-300}
+      GATEWAY_FEE_FIXED: ${GATEWAY_FEE_FIXED:-1000}
+      GATEWAY_FEE_BPS: ${GATEWAY_FEE_BPS:-140}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    ports:
+      - "8080:8080"
+
 volumes:
   pgdata:
   miniodata:

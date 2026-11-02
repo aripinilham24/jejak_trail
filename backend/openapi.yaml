@@ -1,0 +1,654 @@
+openapi: 3.1.0
+info:
+  title: Jejak Trail API
+  version: 1.0.0
+  description: |
+    API platform event trail run: discovery, registrasi, verifikasi, pembayaran,
+    tiket QR, check-in racepack, refund, pencairan, sengketa, dan audit.
+    Semua response sukses memakai envelope `{ "data": ... }` (list menambahkan `meta`).
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development
+tags:
+  - name: Auth
+  - name: Discovery
+  - name: Registration
+  - name: Payment
+  - name: Organizer
+  - name: Admin
+  - name: Webhook
+security:
+  - bearerAuth: []
+paths:
+  /health/live:
+    get:
+      security: []
+      summary: Liveness probe
+      responses:
+        "200": { description: OK }
+  /health/ready:
+    get:
+      security: []
+      summary: Readiness probe (database + storage)
+      responses:
+        "200": { description: OK }
+        "503": { description: Tidak siap }
+  /auth/attendee/register:
+    post:
+      security: []
+      tags: [Auth]
+      summary: Registrasi peserta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                fullName: { type: string }
+                phone: { type: string }
+                birthDate: { type: string, format: date }
+                gender: { type: string, enum: [male, female] }
+      responses:
+        "201":
+          description: Terdaftar
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponseEnvelope" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/organizer/register:
+    post:
+      security: []
+      tags: [Auth]
+      summary: Registrasi organisasi + owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organization, owner, bank]
+              properties:
+                organization:
+                  type: object
+                  required: [name, orgType, officialEmail, phone, address, province, city]
+                  properties:
+                    name: { type: string }
+                    orgType: { type: string, enum: [community, event_organizer, foundation] }
+                    officialEmail: { type: string, format: email }
+                    phone: { type: string }
+                    address: { type: string }
+                    province: { type: string }
+                    city: { type: string }
+                owner:
+                  type: object
+                  required: [email, password, fullName]
+                  properties:
+                    email: { type: string, format: email }
+                    password: { type: string, minLength: 8 }
+                    fullName: { type: string }
+                    phone: { type: string }
+                    positionTitle: { type: string }
+                bank:
+                  type: object
+                  required: [bankName, accountNumber, accountHolder]
+                  properties:
+                    bankName: { type: string }
+                    accountNumber: { type: string }
+                    accountHolder: { type: string }
+      responses:
+        "201": { description: Terdaftar }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/login:
+    post:
+      security: []
+      tags: [Auth]
+      summary: Login per konteks akun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, accountType]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                accountType: { type: string, enum: [attendee, organizer, admin] }
+      responses:
+        "200":
+          description: Login berhasil; refresh token diset sebagai cookie httpOnly
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponseEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotasi refresh token (cookie)
+      responses:
+        "200": { description: Token baru }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cabut refresh token
+      responses:
+        "204": { description: Logout }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Identitas akun aktif
+      responses:
+        "200": { description: Identitas }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /events:
+    get:
+      security: []
+      tags: [Discovery]
+      summary: Daftar event publik
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: province, in: query, schema: { type: string } }
+        - { name: city, in: query, schema: { type: string } }
+        - { name: type, in: query, schema: { type: string, enum: [native, external] } }
+        - { name: month, in: query, schema: { type: string, example: "2026-12" } }
+        - { name: difficulty, in: query, schema: { type: string } }
+        - { name: registrationStatus, in: query, schema: { type: string, enum: [open, closed] } }
+        - { name: sort, in: query, schema: { type: string, enum: [event_date, newest, title] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200":
+          description: Daftar event
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Event" }
+                  meta: { $ref: "#/components/schemas/Meta" }
+  /events/{slug}:
+    get:
+      security: []
+      tags: [Discovery]
+      summary: Detail event publik
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Detail event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventEnvelope" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /events/{slug}/registrations:
+    post:
+      tags: [Registration]
+      summary: Kirim pendaftaran peserta
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoryId]
+              properties:
+                categoryId: { type: string, format: uuid }
+                fullName: { type: string }
+                birthDate: { type: string, format: date }
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      fieldId: { type: string, format: uuid }
+                      value: { type: string }
+                qualifications:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      requirementId: { type: string, format: uuid }
+                      valueText: { type: string }
+                      fileKey: { type: string }
+                      externalLink: { type: string, format: uri }
+      responses:
+        "201":
+          description: Pendaftaran dibuat
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationEnvelope" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /account/registrations:
+    get:
+      tags: [Registration]
+      summary: Pendaftaran milik peserta
+      responses:
+        "200": { description: Daftar pendaftaran }
+  /account/registrations/{id}:
+    get:
+      tags: [Registration]
+      summary: Detail pendaftaran milik peserta
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Detail pendaftaran }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /account/tickets:
+    get:
+      tags: [Registration]
+      summary: Tiket QR milik peserta
+      responses:
+        "200": { description: Daftar tiket }
+  /account/notifications:
+    get:
+      tags: [Registration]
+      summary: Notifikasi in-app
+      responses:
+        "200": { description: Daftar notifikasi + unread count }
+  /organizer/dashboard:
+    get:
+      tags: [Organizer]
+      summary: Statistik organizer
+      responses:
+        "200": { description: Dashboard organizer }
+  /organizer/events:
+    get:
+      tags: [Organizer]
+      summary: Event milik organizer
+      responses:
+        "200": { description: Daftar event }
+    post:
+      tags: [Organizer]
+      summary: Buat event draft lengkap
+      responses:
+        "201": { description: Event dibuat }
+        "403": { description: Organisasi belum terverifikasi }
+  /organizer/events/{id}:
+    get:
+      tags: [Organizer]
+      summary: Detail event organizer
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Detail event }
+    put:
+      tags: [Organizer]
+      summary: Ubah event draft
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Event diperbarui }
+  /organizer/events/{id}/submit:
+    post:
+      tags: [Organizer]
+      summary: Kirim event untuk review admin
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Event pending_review }
+  /organizer/registrations:
+    get:
+      tags: [Organizer]
+      summary: Antrean/peserta pendaftaran event organizer
+      responses:
+        "200": { description: Daftar pendaftaran }
+  /organizer/registrations/{id}:
+    get:
+      tags: [Organizer]
+      summary: Detail pendaftaran untuk verifikasi
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Detail pendaftaran }
+  /organizer/registrations/{id}/approve:
+    post:
+      tags: [Organizer]
+      summary: Setujui pendaftaran
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Pendaftaran awaiting_payment / waitlisted }
+  /organizer/registrations/{id}/reject:
+    post:
+      tags: [Organizer]
+      summary: Tolak pendaftaran
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { description: Pendaftaran rejected }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /organizer/events/{id}/checkin/manifest:
+    get:
+      tags: [Organizer]
+      summary: Manifest check-in offline
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Manifest peserta + tiket }
+  /organizer/checkin/scan:
+    post:
+      tags: [Organizer]
+      summary: Scan QR check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckinScanInput" }
+      responses:
+        "200": { description: Hasil check-in (checked_in / already_checked_in / invalid) }
+  /organizer/checkin/sync:
+    post:
+      tags: [Organizer]
+      summary: Sinkronisasi antrean check-in offline
+      responses:
+        "200": { description: Hasil per item }
+  /organizer/events/{id}/participants/export:
+    get:
+      tags: [Organizer]
+      summary: Export CSV peserta
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
+  /organizer/finance:
+    get:
+      tags: [Organizer]
+      summary: Ringkasan keuangan organizer
+      responses:
+        "200": { description: Saldo dan refund }
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Statistik platform
+      responses:
+        "200": { description: Dashboard admin }
+  /admin/events:
+    get:
+      tags: [Admin]
+      summary: Daftar event untuk kurasi
+      responses:
+        "200": { description: Daftar event }
+  /admin/events/{id}/review:
+    post:
+      tags: [Admin]
+      summary: Setujui / minta revisi event
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approve: { type: boolean }
+                note: { type: string }
+      responses:
+        "200": { description: Status event diperbarui }
+  /admin/external-events:
+    post:
+      tags: [Admin]
+      summary: Tambah event eksternal
+      responses:
+        "201": { description: Event eksternal dibuat }
+  /admin/organizations:
+    get:
+      tags: [Admin]
+      summary: Daftar organisasi
+      responses:
+        "200": { description: Daftar organisasi }
+  /admin/organizations/{id}/verify:
+    post:
+      tags: [Admin]
+      summary: Verifikasi / tolak organisasi
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Status organisasi diperbarui }
+  /admin/finance:
+    get:
+      tags: [Admin]
+      summary: Ringkasan keuangan platform
+      responses:
+        "200": { description: GMV, revenue, refund, disbursement }
+  /admin/refunds:
+    get:
+      tags: [Admin]
+      summary: Daftar refund
+      responses:
+        "200": { description: Daftar refund }
+  /admin/registrations/{id}/refund:
+    post:
+      tags: [Admin]
+      summary: Proses refund pendaftaran
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reasonType]
+              properties:
+                reasonType:
+                  type: string
+                  enum: [event_cancelled, participant_cancel, payment_error, overbooked, other]
+                amount: { type: integer, minimum: 1 }
+                note: { type: string }
+      responses:
+        "201": { description: Refund diproses }
+  /admin/disbursements:
+    get:
+      tags: [Admin]
+      summary: Daftar pencairan
+      responses:
+        "200": { description: Daftar pencairan }
+  /admin/events/{id}/disbursements:
+    post:
+      tags: [Admin]
+      summary: Buat pencairan tahap baru
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "201": { description: Pencairan eligible dibuat }
+  /admin/disputes:
+    get:
+      tags: [Admin]
+      summary: Daftar sengketa
+      responses:
+        "200": { description: Daftar sengketa }
+  /admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Log audit
+      responses:
+        "200": { description: Daftar log audit }
+  /webhooks/payments/{gateway}:
+    post:
+      security: []
+      tags: [Webhook]
+      summary: Webhook pembayaran (HMAC signature)
+      parameters:
+        - { name: gateway, in: path, required: true, schema: { type: string, enum: [mock] } }
+        - { name: X-Webhook-Signature, in: header, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Diterima / duplikat diabaikan }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Token tidak valid / tidak ada
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Resource tidak ditemukan
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Conflict:
+      description: Konflik status / kuota / duplikasi
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    ValidationError:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    RateLimited:
+      description: Terlalu banyak request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  schemas:
+    Meta:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        unread: { type: integer, format: int64 }
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            fields:
+              type: object
+              additionalProperties: { type: string }
+            requestId: { type: string }
+    AuthResponseEnvelope:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            accessToken: { type: string }
+            expiresIn: { type: integer, format: int64 }
+            identity:
+              type: object
+              additionalProperties: true
+    EventEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Event" }
+    Event:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        eventType: { type: string, enum: [native, external] }
+        status: { type: string }
+        city: { type: string }
+        province: { type: string }
+        eventStartAt: { type: string, format: date-time }
+        eventEndAt: { type: string, format: date-time }
+        registrationOpenAt: { type: [string, "null"], format: date-time }
+        registrationCloseAt: { type: [string, "null"], format: date-time }
+        externalUrl: { type: [string, "null"], format: uri }
+        price: { type: integer, format: int64 }
+        categories:
+          type: array
+          items: { $ref: "#/components/schemas/EventCategory" }
+        organizerName: { type: string }
+        organizerVerified: { type: boolean }
+        participantCount: { type: integer }
+    EventCategory:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        distanceKm: { type: number }
+        elevationGainM: { type: integer }
+        difficulty: { type: string, enum: [easy, moderate, hard, extreme] }
+        price: { type: integer, format: int64 }
+        quota: { type: integer }
+        requiresQualification: { type: boolean }
+    RegistrationEnvelope:
+      type: object
+      properties:
+        data: { $ref: "#/components/schemas/Registration" }
+    Registration:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [pending_verification, approved, awaiting_payment, paid, rejected, expired, waitlisted, cancelled, refunded, checked_in]
+        fullNameSnapshot: { type: string }
+        bibNumber: { type: [string, "null"] }
+        paymentDeadlineAt: { type: [string, "null"], format: date-time }
+        payment:
+          type: object
+          additionalProperties: true
+        ticket:
+          type: object
+          additionalProperties: true
+        statusLogs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Ticket:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        registrationId: { type: string, format: uuid }
+        qrCode: { type: string }
+        status: { type: string, enum: [issued, used, revoked] }
+        issuedAt: { type: string, format: date-time }
+    CheckinScanInput:
+      type: object
+      required: [qrCode]
+      properties:
+        qrCode: { type: string }
+        pickupType: { type: string, enum: [self, representative] }
+        representativeName: { type: string }
+        representativeNote: { type: string }
+        clientId: { type: string }
+        createdOffline: { type: boolean }
+        scannedAt: { type: string, format: date-time }
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        channel: { type: string, enum: [email, whatsapp, in_app] }
+        readAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }

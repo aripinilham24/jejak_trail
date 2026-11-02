@@ -12,6 +12,42 @@ pembayaran, tiket QR, check-in racepack, dan pencairan dana.
 - MinIO untuk object storage (Docker)
 - Mailpit untuk email development (Docker)
 
+## Dokumentasi API
+
+- Spesifikasi OpenAPI: [`openapi.yaml`](./openapi.yaml)
+- Semua endpoint memakai prefix `/api/v1`
+- Envelope sukses: `{ "data": ... }`, list menambahkan `meta`
+- Envelope error: `{ "error": { code, message, fields?, requestId } }`
+
+## Hardening
+
+- Rate limit per IP: login 10/menit, register 5/menit, refresh 60/menit, webhook 120/menit, upload 30/menit.
+- Security headers via Helmet, CORS allowlist, body limit 25 MB, graceful shutdown.
+- Password argon2id, refresh token rotasi + deteksi reuse, file privat presigned URL.
+- `TRUST_PROXY=true` bila berjalan di belakang reverse proxy agar `c.IP()` benar.
+- Audit log untuk aksi admin/organizer berdampak.
+
+## Backup dan restore
+
+```bash
+make backup                                  # backups/jejak-<timestamp>.sql
+make restore file=backups/jejak-xxx.sql
+```
+
+## Docker
+
+```bash
+make docker-build     # image jejak-trail-api:local
+make docker-up        # API + Postgres + MinIO + Mailpit via profile "app"
+```
+
+Untuk production: set `APP_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`,
+secret JWT/ENCRYPTION_KEY yang kuat, dan jalankan migrasi sebelum API:
+
+```bash
+go run ./cmd/migrate up
+```
+
 ## Prasyarat
 
 - Go >= 1.25 (disarankan 1.27.3)
@@ -248,8 +284,13 @@ jadi compose memakai `bitnamilegacy/minio` (MinIO versi legacy). Bucket dibuat
 otomatis oleh API saat start (`EnsureBucket`), sehingga tidak ada service init
 satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
-### Berikutnya
+### Sisa pekerjaan sebelum production
 
-- Hardening: rate limit, security header/CSP, observability, backup, OpenAPI formal, integration test, Docker image deploy.
+- Uji beban/burst saat pendaftaran dibuka; target kapasitas belum ditentukan.
+- Metrics/alerting (Prometheus/Sentry), log aggregation, dan dashboard operasional.
+- Backup terjadwal + uji restore rutin; retensi data sesuai UU PDP.
+- Gateway pembayaran produksi (Midtrans/Xendit), rekonsiliasi, dan split/escrow bila dipakai.
+- 2FA wajib untuk admin/owner, CSP frontend, dan review keamanan eksternal.
+- Integration test end-to-end dengan Postgres nyata di CI (selain unit test saat ini).
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

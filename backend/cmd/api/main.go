@@ -206,10 +206,10 @@ func newApp(
 	})
 
 	authGroup := api.Group("/auth")
-	authGroup.Post("/attendee/register", authHandler.RegisterAttendee)
-	authGroup.Post("/organizer/register", authHandler.RegisterOrganizer)
-	authGroup.Post("/login", authHandler.Login)
-	authGroup.Post("/refresh", authHandler.Refresh)
+	authGroup.Post("/attendee/register", middleware.RateLimit(5, time.Minute), authHandler.RegisterAttendee)
+	authGroup.Post("/organizer/register", middleware.RateLimit(5, time.Minute), authHandler.RegisterOrganizer)
+	authGroup.Post("/login", middleware.RateLimit(10, time.Minute), authHandler.Login)
+	authGroup.Post("/refresh", middleware.RateLimit(60, time.Minute), authHandler.Refresh)
 	authGroup.Post("/logout", authHandler.Logout)
 	authGroup.Get("/verify-email", authHandler.VerifyEmail)
 	authGroup.Get("/me", auth.RequireAuth(tokens), authHandler.Me)
@@ -226,12 +226,12 @@ func newApp(
 	account.Get("/disputes", disputeHandler.ListMine)
 	account.Post("/disputes", disputeHandler.Create)
 
-	api.Post("/webhooks/payments/:gateway", paymentHandler.Webhook)
+	api.Post("/webhooks/payments/:gateway", middleware.RateLimit(120, time.Minute), paymentHandler.Webhook)
 	api.Post("/dev/payments/:orderId/simulate", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulatePaid)
 	api.Post("/dev/payments/:orderId/expire", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulateExpire)
 
 	api.Post("/events/:slug/registrations", auth.RequireAuth(tokens, auth.AccountAttendee), registrationHandler.Submit)
-	api.Post("/uploads", auth.RequireAuth(tokens), uploadHandler.Upload)
+	api.Post("/uploads", auth.RequireAuth(tokens), middleware.RateLimit(30, time.Minute), uploadHandler.Upload)
 
 	api.Get("/events/calendar", eventHandler.Calendar)
 	api.Get("/events", eventHandler.List)

@@ -4,7 +4,7 @@ COMPOSE ?= docker compose
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset ps logs migrate-up migrate-status migrate-version seed run test test-integration sqlc tidy fmt lint build
+.PHONY: help up down reset ps logs migrate-up migrate-status migrate-version seed run test test-integration sqlc tidy fmt lint build backup restore docker-build docker-up
 
 help: ## Tampilkan daftar target
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -63,3 +63,17 @@ lint: ## Vet + cek format
 
 build: ## Build binary API
 	$(GO) build -o bin/api ./cmd/api
+
+backup: ## Dump database ke backups/jejak-<timestamp>.sql
+	mkdir -p backups
+	$(COMPOSE) exec -T postgres sh -c 'pg_dump -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' > backups/jejak-$$(date +%Y%m%d-%H%M%S).sql
+
+restore: ## Restore database (wajib: make restore file=backups/xxx.sql)
+	@test -n "$(file)" || (echo "gunakan: make restore file=backups/xxx.sql"; exit 1)
+	$(COMPOSE) exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < $(file)
+
+docker-build: ## Build image API
+	docker build -t jejak-trail-api:local .
+
+docker-up: ## Jalankan API + infra via Docker
+	$(COMPOSE) --profile app up -d --build

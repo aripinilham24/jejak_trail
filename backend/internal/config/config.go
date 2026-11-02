@@ -19,6 +19,7 @@ type Config struct {
 	AppBaseURL  string   `env:"APP_BASE_URL" envDefault:"http://localhost:8080"`
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:5173,http://127.0.0.1:5173"`
 	LogLevel    string   `env:"LOG_LEVEL" envDefault:"info"`
+	TrustProxy  bool     `env:"TRUST_PROXY" envDefault:"false"`
 
 	DatabaseURL string `env:"DATABASE_URL,required"`
 	DBMaxConns  int32  `env:"DB_MAX_CONNS" envDefault:"20"`
