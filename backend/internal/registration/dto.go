@@ -79,6 +79,14 @@ type SubmissionDTO struct {
 	CreatedAt        string  `json:"createdAt"`
 }
 
+type TicketSummaryDTO struct {
+	ID             string `json:"id"`
+	RegistrationID string `json:"registrationId"`
+	QRCode         string `json:"qrCode"`
+	Status         string `json:"status"`
+	IssuedAt       string `json:"issuedAt"`
+}
+
 type StatusLogDTO struct {
 	ID             string  `json:"id"`
 	RegistrationID string  `json:"registrationId"`
@@ -114,6 +122,7 @@ type RegistrationDTO struct {
 	Event                    *EventSummaryDTO    `json:"event,omitempty"`
 	Category                 *CategorySummaryDTO `json:"category,omitempty"`
 	Payment                  *PaymentDTO         `json:"payment,omitempty"`
+	Ticket                   *TicketSummaryDTO   `json:"ticket,omitempty"`
 	Answers                  []AnswerDTO         `json:"answers"`
 	QualificationSubmissions []SubmissionDTO     `json:"qualificationSubmissions"`
 	StatusLogs               []StatusLogDTO      `json:"statusLogs"`
@@ -225,6 +234,16 @@ func toSubmissionDTO(row gen.ListQualificationSubmissionsByRegistrationRow, file
 		Status:           row.Status,
 		ReviewerNote:     row.ReviewerNote,
 		CreatedAt:        row.CreatedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func toTicketDTO(t gen.Ticket) *TicketSummaryDTO {
+	return &TicketSummaryDTO{
+		ID:             t.ID.String(),
+		RegistrationID: t.RegistrationID.String(),
+		QRCode:         t.QrCode,
+		Status:         t.Status,
+		IssuedAt:       t.IssuedAt.UTC().Format(time.RFC3339),
 	}
 }
 

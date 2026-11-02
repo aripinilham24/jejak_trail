@@ -354,3 +354,60 @@ export function useUploadFile() {
     },
   })
 }
+
+export interface TicketDetail {
+  id: string
+  registrationId: string
+  qrCode: string
+  status: "issued" | "used" | "revoked"
+  issuedAt: string
+  bibNumber?: string
+  fullName: string
+  registrationStatus: string
+  eventTitle: string
+  eventSlug: string
+  eventStartAt: string
+  locationName: string
+  city: string
+  province: string
+  categoryName: string
+}
+
+export function useMyTickets() {
+  return useQuery({
+    queryKey: ["my-tickets"],
+    queryFn: () => api.list<TicketDetail>("/account/tickets"),
+  })
+}
+
+export function useMyTicket(id: string | undefined) {
+  return useQuery({
+    queryKey: ["my-ticket", id],
+    queryFn: () => api.get<TicketDetail>(`/account/tickets/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useSimulatePaid() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: string) => api.post(`/dev/payments/${orderId}/simulate`, {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-registration"] })
+      void queryClient.invalidateQueries({ queryKey: ["my-registrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["my-tickets"] })
+      void queryClient.invalidateQueries({ queryKey: ["my-ticket"] })
+    },
+  })
+}
+
+export function useSimulateExpire() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: string) => api.post(`/dev/payments/${orderId}/expire`, {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-registration"] })
+      void queryClient.invalidateQueries({ queryKey: ["my-registrations"] })
+    },
+  })
+}

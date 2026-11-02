@@ -48,6 +48,7 @@ type Config struct {
 	MailFrom     string `env:"MAIL_FROM" envDefault:"Jejak Trail <no-reply@jejak.local>"`
 
 	PaymentDriver      string        `env:"PAYMENT_DRIVER" envDefault:"mock"`
+	MockWebhookSecret  string        `env:"MOCK_WEBHOOK_SECRET" envDefault:"mock-webhook-secret-dev"`
 	PaymentWindow      time.Duration `env:"PAYMENT_WINDOW" envDefault:"24h"`
 	VerificationWindow time.Duration `env:"VERIFICATION_WINDOW" envDefault:"72h"`
 	PlatformFeeBPS     int64         `env:"PLATFORM_FEE_BPS" envDefault:"300"`

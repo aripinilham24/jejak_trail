@@ -133,6 +133,16 @@ export function AccountRegistrationDetailPage() {
                 <Link to={`/account/checkout/${reg.id}`}>Lanjut ke pembayaran</Link>
               </Button>
             )}
+            {reg.ticket && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
+                <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                  Tiket terbit · BIB {reg.bibNumber}
+                </p>
+                <Button asChild size="sm" variant="outline" className="mt-2">
+                  <Link to={`/account/tickets/${reg.ticket.id}`}>Buka tiket QR</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

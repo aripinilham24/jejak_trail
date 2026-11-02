@@ -95,8 +95,20 @@ Sudah berjalan end-to-end:
 - Organizer event builder: draft event lengkap (kategori, syarat kualifikasi, form peserta, refund policy), list/detail event milik organisasi, submit ke review admin.
 - Registrasi peserta: submit dengan jawaban form + dokumen kualifikasi, snapshot harga & kebijakan refund, kuota atomik, waitlist, upload privat ke MinIO.
 - Verifikasi organizer: antrean pendaftar, detail dokumen, setujui (tagihan pending + batas waktu) atau tolak dengan alasan, notifikasi in-app + email.
+- Pembayaran: gateway mock dengan signature HMAC, webhook idempoten (`webhook_events`), simulasi bayar/kedaluwarsa, job expiry otomatis tiap menit.
+- Pasca-lunas: BIB otomatis per kategori (atomik), data terkunci, tiket QR unik, halaman tiket dengan QR asli.
+- Waitlist: promosi otomatis ke `awaiting_payment`/`pending_verification` saat pembayaran kedaluwarsa.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR sudah memakai API.
+
+### Aturan penting pembayaran dan tiket
+
+- Gateway aktif saat ini `mock`; webhook memverifikasi `X-Webhook-Signature` = HMAC-SHA256 body dengan `MOCK_WEBHOOK_SECRET`.
+- Webhook idempoten: kombinasi (`gateway`, `event_id`) unik; event ganda tidak menggandakan efek.
+- Pembayaran `paid` mengisi `paid_at`, mengunci data, menerbitkan BIB (`PREFIX-0001`, atomik per kategori) dan tiket QR acak.
+- Pembayaran `expired` melepas slot dan mempromosikan waitlist tertua.
+- Job expiry berjalan setiap menit di proses API; endpoint simulasi hanya tersedia di non-production.
+- Status BIB yang melewati `bib_end` ditolak dan perlu tindakan admin.
 
 ### Aturan penting registrasi
 
@@ -144,6 +156,12 @@ GET    /api/v1/account/registrations
 GET    /api/v1/account/registrations/:id
 POST   /api/v1/uploads
 
+GET    /api/v1/account/tickets
+GET    /api/v1/account/tickets/:id
+POST   /api/v1/webhooks/payments/:gateway
+POST   /api/v1/dev/payments/:orderId/simulate
+POST   /api/v1/dev/payments/:orderId/expire
+
 GET    /api/v1/organizer/registrations
 GET    /api/v1/organizer/registrations/:id
 POST   /api/v1/organizer/registrations/:id/approve
@@ -169,7 +187,7 @@ satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Payment gateway adapter + webhook idempoten + BIB/tiket QR.
-- Promosi waitlist otomatis saat slot dilepas (expired/refund).
+- Check-in racepack: manifest, scan QR, idempotensi scan ganda, mode offline + sinkronisasi.
+- Refund, pencairan dana bertahap, sengketa, dashboard keuangan organizer/admin.
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

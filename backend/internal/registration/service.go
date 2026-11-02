@@ -508,6 +508,10 @@ func (s *Service) attachSummary(ctx context.Context, dto *RegistrationDTO, row g
 	if err == nil {
 		dto.Payment = toPaymentDTO(payment)
 	}
+	ticket, err := s.q.GetTicketByRegistration(ctx, row.ID)
+	if err == nil {
+		dto.Ticket = toTicketDTO(ticket)
+	}
 }
 
 func (s *Service) buildDetail(ctx context.Context, row gen.Registration) (RegistrationDTO, error) {

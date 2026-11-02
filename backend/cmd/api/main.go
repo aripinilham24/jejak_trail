@@ -19,6 +19,7 @@ import (
 	"github.com/aripinilham/jejak_trail/backend/internal/db/gen"
 	"github.com/aripinilham/jejak_trail/backend/internal/event"
 	"github.com/aripinilham/jejak_trail/backend/internal/notification"
+	"github.com/aripinilham/jejak_trail/backend/internal/payment"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/crypto"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/httpx"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/middleware"
@@ -86,7 +87,13 @@ func run() error {
 	registrationHandler := registration.NewHandler(registrationService)
 	uploadHandler := upload.NewHandler(store)
 
-	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, store)
+	gateway := payment.NewMockGateway(cfg.MockWebhookSecret)
+	paymentService := payment.NewService(database, cfg, notifier, logger, gateway)
+	paymentHandler := payment.NewHandler(paymentService, cfg, gateway)
+
+	go runPaymentExpiry(ctx, paymentService, logger)
+
+	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, store)
 
 	logger.Info("starting api",
 		"app", cfg.AppName,
@@ -114,6 +121,7 @@ func newApp(
 	eventHandler *event.Handler,
 	registrationHandler *registration.Handler,
 	uploadHandler *upload.Handler,
+	paymentHandler *payment.Handler,
 	store storage.Storage,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -179,6 +187,12 @@ func newApp(
 	account.Patch("/profile", authHandler.UpdateProfile)
 	account.Get("/registrations", registrationHandler.ListMine)
 	account.Get("/registrations/:id", registrationHandler.GetMine)
+	account.Get("/tickets", paymentHandler.ListTickets)
+	account.Get("/tickets/:id", paymentHandler.GetTicket)
+
+	api.Post("/webhooks/payments/:gateway", paymentHandler.Webhook)
+	api.Post("/dev/payments/:orderId/simulate", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulatePaid)
+	api.Post("/dev/payments/:orderId/expire", auth.RequireAuth(tokens, auth.AccountAttendee), paymentHandler.SimulateExpire)
 
 	api.Post("/events/:slug/registrations", auth.RequireAuth(tokens, auth.AccountAttendee), registrationHandler.Submit)
 	api.Post("/uploads", auth.RequireAuth(tokens), uploadHandler.Upload)
@@ -232,4 +246,19 @@ func newLogger(level string) *slog.Logger {
 
 func genQueries(database *db.DB) *gen.Queries {
 	return gen.New(database.Pool)
+}
+
+func runPaymentExpiry(ctx context.Context, service *payment.Service, logger *slog.Logger) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := service.ExpireDue(ctx); err != nil {
+				logger.Error("job expiry pembayaran gagal", "error", err)
+			}
+		}
+	}
 }
