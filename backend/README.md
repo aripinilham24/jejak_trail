@@ -98,8 +98,18 @@ Sudah berjalan end-to-end:
 - Pembayaran: gateway mock dengan signature HMAC, webhook idempoten (`webhook_events`), simulasi bayar/kedaluwarsa, job expiry otomatis tiap menit.
 - Pasca-lunas: BIB otomatis per kategori (atomik), data terkunci, tiket QR unik, halaman tiket dengan QR asli.
 - Waitlist: promosi otomatis ke `awaiting_payment`/`pending_verification` saat pembayaran kedaluwarsa.
+- Check-in racepack: manifest event, scan QR online, penolakan scan ganda dengan info scan sebelumnya, check-in perwakilan, antrean offline + sinkronisasi idempoten.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer, checkout pembayaran mock, daftar/detail tiket QR, halaman check-in racepack (online/offline) sudah memakai API.
+
+### Aturan penting check-in racepack
+
+- Manifest hanya memuat pendaftaran `paid`/`checked_in` yang sudah memiliki tiket.
+- Scan QR memverifikasi tiket milik event organizer yang sedang login.
+- Scan ganda ditolak dengan informasi waktu scan sebelumnya; tiket tidak bisa dipakai dua kali.
+- Perwakilan wajib mengisi nama perwakilan; catatan surat kuasa opsional.
+- Mode offline menyimpan antrean di browser (localStorage) dengan `clientId` unik; sinkronisasi batch idempoten, item yang sudah tersinkron tidak menggandakan check-in.
+- Check-in mengubah tiket menjadi `used`, pendaftaran menjadi `checked_in`, dan menulis status log.
 
 ### Aturan penting pembayaran dan tiket
 
@@ -167,6 +177,10 @@ GET    /api/v1/organizer/registrations/:id
 POST   /api/v1/organizer/registrations/:id/approve
 POST   /api/v1/organizer/registrations/:id/reject
 
+GET    /api/v1/organizer/events/:id/checkin/manifest
+POST   /api/v1/organizer/checkin/scan
+POST   /api/v1/organizer/checkin/sync
+
 GET    /api/v1/admin/organizations
 GET    /api/v1/admin/organizations/:id
 POST   /api/v1/admin/organizations/:id/verify
@@ -187,7 +201,7 @@ satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Check-in racepack: manifest, scan QR, idempotensi scan ganda, mode offline + sinkronisasi.
-- Refund, pencairan dana bertahap, sengketa, dashboard keuangan organizer/admin.
+- Dashboard organizer/admin, export CSV, broadcast pengumuman, notifikasi in-app.
+- Refund, pencairan dana bertahap, sengketa, dashboard keuangan.
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

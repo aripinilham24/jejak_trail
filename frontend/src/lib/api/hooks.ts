@@ -411,3 +411,84 @@ export function useSimulateExpire() {
     },
   })
 }
+
+export interface CheckinDetail {
+  id: string
+  ticketId: string
+  checkedInBy?: string
+  checkedInByName?: string
+  pickupType: "self" | "representative"
+  representativeName?: string
+  representativeNote?: string
+  createdOffline: boolean
+  scannedAt: string
+  syncedAt?: string
+}
+
+export interface ManifestParticipant {
+  registrationId: string
+  ticketId: string
+  qrCode: string
+  bibNumber?: string
+  fullName: string
+  categoryName: string
+  ticketStatus: "issued" | "used" | "revoked"
+  registrationStatus: string
+  checkin?: CheckinDetail
+}
+
+export interface CheckinManifest {
+  eventId: string
+  eventTitle: string
+  eventStartAt: string
+  generatedAt: string
+  total: number
+  checkedIn: number
+  participants: ManifestParticipant[]
+}
+
+export interface CheckinScanInput {
+  qrCode: string
+  pickupType: "self" | "representative"
+  representativeName?: string
+  representativeNote?: string
+  clientId?: string
+  createdOffline?: boolean
+  scannedAt?: string
+}
+
+export interface CheckinResult {
+  status: "checked_in" | "already_checked_in" | "invalid"
+  message: string
+  participant?: ManifestParticipant
+  checkin?: CheckinDetail
+}
+
+export function useCheckinManifest(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["checkin-manifest", eventId],
+    queryFn: () => api.get<CheckinManifest>(`/organizer/events/${eventId}/checkin/manifest`),
+    enabled: Boolean(eventId),
+  })
+}
+
+export function useScanCheckin() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CheckinScanInput) => api.post<CheckinResult>("/organizer/checkin/scan", input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["checkin-manifest"] })
+    },
+  })
+}
+
+export function useSyncCheckins() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: CheckinScanInput[]) =>
+      api.post<{ results: CheckinResult[] }>("/organizer/checkin/sync", { items }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["checkin-manifest"] })
+    },
+  })
+}

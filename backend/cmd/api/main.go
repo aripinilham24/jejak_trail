@@ -14,6 +14,7 @@ import (
 
 	"github.com/aripinilham/jejak_trail/backend/internal/audit"
 	"github.com/aripinilham/jejak_trail/backend/internal/auth"
+	"github.com/aripinilham/jejak_trail/backend/internal/checkin"
 	"github.com/aripinilham/jejak_trail/backend/internal/config"
 	"github.com/aripinilham/jejak_trail/backend/internal/db"
 	"github.com/aripinilham/jejak_trail/backend/internal/db/gen"
@@ -91,9 +92,12 @@ func run() error {
 	paymentService := payment.NewService(database, cfg, notifier, logger, gateway)
 	paymentHandler := payment.NewHandler(paymentService, cfg, gateway)
 
+	checkinService := checkin.NewService(database, logger)
+	checkinHandler := checkin.NewHandler(checkinService, genQueries(database))
+
 	go runPaymentExpiry(ctx, paymentService, logger)
 
-	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, store)
+	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, paymentHandler, checkinHandler, store)
 
 	logger.Info("starting api",
 		"app", cfg.AppName,
@@ -122,6 +126,7 @@ func newApp(
 	registrationHandler *registration.Handler,
 	uploadHandler *upload.Handler,
 	paymentHandler *payment.Handler,
+	checkinHandler *checkin.Handler,
 	store storage.Storage,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -212,6 +217,9 @@ func newApp(
 	organizer.Get("/registrations/:id", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerGet)
 	organizer.Post("/registrations/:id/approve", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerApprove)
 	organizer.Post("/registrations/:id/reject", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerReject)
+	organizer.Get("/events/:id/checkin/manifest", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Manifest)
+	organizer.Post("/checkin/scan", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Scan)
+	organizer.Post("/checkin/sync", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier, auth.RoleRacepackStaff), checkinHandler.Sync)
 
 	admin := api.Group("/admin", auth.RequireAuth(tokens, auth.AccountAdmin))
 	admin.Get("/events", eventHandler.AdminList)
