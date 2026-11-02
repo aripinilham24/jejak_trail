@@ -112,7 +112,7 @@ export function HomePage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full">
-                <Link to="/daftar/organizer">{t("home.ctaSecondary")}</Link>
+                <Link to="/register-organizer">{t("home.ctaSecondary")}</Link>
               </Button>
             </div>
 
@@ -387,7 +387,7 @@ export function HomePage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="rounded-full">
-                  <Link to="/daftar/organizer">
+                  <Link to="/register-organizer">
                     {t("home.organizerCta")}
                     <ArrowRight className="size-4" />
                   </Link>

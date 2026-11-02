@@ -101,7 +101,7 @@ export function PublicHeader() {
           </div>
 
           <Button asChild size="sm" className="hidden rounded-full lg:inline-flex">
-            <Link to="/daftar/organizer">
+            <Link to="/register-organizer">
               <Badge variant="secondary" className="-ml-1 mr-1 h-5 rounded-full bg-amber-950/30 px-1.5 text-[10px] uppercase text-amber-100">
                 Baru
               </Badge>
@@ -139,7 +139,7 @@ export function PublicHeader() {
                     </NavLink>
                   ))}
                   <Link
-                    to="/daftar/organizer"
+                    to="/register-organizer"
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent/60"
                   >
                     <Trophy className="size-4" />

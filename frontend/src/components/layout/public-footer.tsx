@@ -20,7 +20,7 @@ export function PublicFooter() {
     {
       title: t("footer.forOrganizers"),
       links: [
-        { to: "/daftar/organizer", label: t("auth.registerOrganizer") },
+        { to: "/register-organizer", label: t("auth.registerOrganizer") },
         { to: "/organizer", label: t("nav.dashboard") },
         { to: "/organizer/verifikasi", label: t("organizer.verifications") },
         { to: "/organizer/keuangan", label: t("organizer.finance") },

@@ -120,7 +120,7 @@ export function EventDetailPage() {
   const registerHref =
     phase === "external"
       ? event.externalUrl ?? "#"
-      : `/events/${event.slug}/daftar`
+      : `/registration/${event.slug}`
 
   const canRegister = phase === "open" || phase === "closing"
 
@@ -389,7 +389,7 @@ export function EventDetailPage() {
                           <TableCell className="text-right">
                             {canRegister ? (
                               <Button asChild size="xs" variant={full ? "outline" : "default"} className="rounded-full">
-                                <Link to={`/events/${event.slug}/daftar?kategori=${category.id}`}>
+                                <Link to={`/registration/${event.slug}?kategori=${category.id}`}>
                                   {full ? t("detail.waitlistOpen") : t("actions.register")}
                                 </Link>
                               </Button>

@@ -26,6 +26,7 @@ import { EventNewPage } from "@/pages/organizer/event-new"
 import { OrganizerOnboardingPage } from "@/pages/organizer/onboarding"
 import { OrganizerEventDetailPage } from "@/pages/organizer/event-detail"
 import { OrganizerVerificationsPage } from "@/pages/organizer/verifications"
+import { OrganizerVerificationDetailPage } from "@/pages/organizer/verification-detail"
 import { OrganizerParticipantsPage } from "@/pages/organizer/participants"
 import { OrganizerCheckinPage } from "@/pages/organizer/checkin"
 import { OrganizerAnnouncementsPage } from "@/pages/organizer/announcements"
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
       { path: "event-new", element: <EventNewPage /> },
       { path: "event-detail/:id", element: <OrganizerEventDetailPage /> },
       { path: "verifications", element: <OrganizerVerificationsPage /> },
+      { path: "verifications/:id", element: <OrganizerVerificationDetailPage /> },
       { path: "participants", element: <OrganizerParticipantsPage /> },
       { path: "checkin", element: <OrganizerCheckinPage /> },
       { path: "announcements", element: <OrganizerAnnouncementsPage /> },

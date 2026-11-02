@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, toQuery } from "@/lib/api/client"
-import type { Event, Organization } from "@/types"
+import type { Event, Organization, Registration } from "@/types"
 
 export interface EventQuery {
   q?: string
@@ -266,6 +266,91 @@ export function useSubmitOrganizerEvent() {
     onSuccess: (_data, id) => {
       void queryClient.invalidateQueries({ queryKey: ["organizer-events"] })
       void queryClient.invalidateQueries({ queryKey: ["organizer-event", id] })
+    },
+  })
+}
+
+export function useMyRegistrations() {
+  return useQuery({
+    queryKey: ["my-registrations"],
+    queryFn: () => api.list<Registration>("/account/registrations"),
+  })
+}
+
+export function useMyRegistration(id: string | undefined) {
+  return useQuery({
+    queryKey: ["my-registration", id],
+    queryFn: () => api.get<Registration>(`/account/registrations/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useSubmitRegistration(slug: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      categoryId: string
+      fullName: string
+      birthDate?: string
+      answers: { fieldId: string; value: string }[]
+      qualifications: { requirementId: string; valueText?: string; fileKey?: string; externalLink?: string }[]
+    }) => api.post<Registration>(`/events/${slug}/registrations`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["my-registrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["event", slug] })
+    },
+  })
+}
+
+export function useOrganizerRegistrations(
+  params: { eventId?: string; status?: string; q?: string; page?: number; limit?: number; enabled?: boolean } = {},
+) {
+  const { enabled = true, ...query } = params
+  return useQuery({
+    queryKey: ["organizer-registrations", query],
+    queryFn: () => api.list<Registration>(`/organizer/registrations${toQuery(query)}`),
+    enabled,
+  })
+}
+
+export function useOrganizerRegistration(id: string | undefined) {
+  return useQuery({
+    queryKey: ["organizer-registration", id],
+    queryFn: () => api.get<Registration>(`/organizer/registrations/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useApproveRegistration() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.post<Registration>(`/organizer/registrations/${id}/approve`, {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["organizer-registrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizer-registration"] })
+    },
+  })
+}
+
+export function useRejectRegistration() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.post<Registration>(`/organizer/registrations/${id}/reject`, { reason }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["organizer-registrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizer-registration"] })
+    },
+  })
+}
+
+export function useUploadFile() {
+  return useMutation({
+    mutationFn: async ({ file, purpose }: { file: File; purpose: string }) => {
+      const form = new FormData()
+      form.append("file", file)
+      form.append("purpose", purpose)
+      return api.post<{ key: string; url: string }>("/uploads", form)
     },
   })
 }

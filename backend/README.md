@@ -93,8 +93,20 @@ Sudah berjalan end-to-end:
 - Discovery: list event + filter, detail event, kalender, metadata filter.
 - Admin: daftar/verifikasi organisasi, daftar/review event, CRUD event eksternal, audit log.
 - Organizer event builder: draft event lengkap (kategori, syarat kualifikasi, form peserta, refund policy), list/detail event milik organisasi, submit ke review admin.
+- Registrasi peserta: submit dengan jawaban form + dokumen kualifikasi, snapshot harga & kebijakan refund, kuota atomik, waitlist, upload privat ke MinIO.
+- Verifikasi organizer: antrean pendaftar, detail dokumen, setujui (tagihan pending + batas waktu) atau tolak dengan alasan, notifikasi in-app + email.
 - Storage: MinIO bucket privat + presigned URL untuk cover/GPX, readiness check.
-- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail sudah memakai API.
+- Frontend: login, register attendee/organizer, events list/detail, admin curation/organization/external event, organizer event list/builder/detail, form pendaftaran peserta, daftar/detail pendaftaran, antrean verifikasi organizer sudah memakai API.
+
+### Aturan penting registrasi
+
+- Slot dihitung dari status `approved`, `awaiting_payment`, `paid`, `checked_in`; baris kategori dikunci (`FOR UPDATE`) saat kuota dicek agar tidak overselling.
+- Kategori berkualifikasi: submit → `pending_verification`; organizer menyetujui → `awaiting_payment` + tagihan pending; menolak → `rejected` + alasan wajib.
+- Kategori tanpa kualifikasi: submit → `awaiting_payment` + tagihan pending dan batas waktu.
+- Kuota penuh: pendaftaran masuk `waitlisted` dengan posisi berurutan (promosi otomatis menyusul di milestone pembayaran/expiry).
+- Jawaban form bertanda sensitif dienkripsi AES-GCM; hanya pemilik dan organizer event yang dapat membacanya.
+- File kualifikasi harus berasal dari upload milik peserta sendiri (`attendee/{user_id}/...`), diakses via presigned URL 15 menit.
+- Tidak ada pendaftaran aktif ganda per peserta per event (partial unique index + pengecekan service).
 
 ### Aturan penting organizer
 
@@ -127,6 +139,16 @@ GET    /api/v1/organizer/events/:id
 PUT    /api/v1/organizer/events/:id
 POST   /api/v1/organizer/events/:id/submit
 
+POST   /api/v1/events/:slug/registrations
+GET    /api/v1/account/registrations
+GET    /api/v1/account/registrations/:id
+POST   /api/v1/uploads
+
+GET    /api/v1/organizer/registrations
+GET    /api/v1/organizer/registrations/:id
+POST   /api/v1/organizer/registrations/:id/approve
+POST   /api/v1/organizer/registrations/:id/reject
+
 GET    /api/v1/admin/organizations
 GET    /api/v1/admin/organizations/:id
 POST   /api/v1/admin/organizations/:id/verify
@@ -147,7 +169,7 @@ satu-kali yang bisa membuat `docker compose up --wait` gagal.
 
 ### Berikutnya
 
-- Registrasi peserta + verifikasi organizer + waitlist.
 - Payment gateway adapter + webhook idempoten + BIB/tiket QR.
+- Promosi waitlist otomatis saat slot dilepas (expired/refund).
 - Check-in racepack offline, refund, pencairan, sengketa.
 - OpenAPI formal + integration test dengan Postgres.

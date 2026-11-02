@@ -313,7 +313,7 @@ export function EventsListPage() {
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button asChild size="sm" className="rounded-full">
-                <Link to="/daftar/organizer">{t("home.organizerCta")}</Link>
+                <Link to="/register-organizer">{t("home.organizerCta")}</Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="rounded-full">
                 <Link to="/kalender">{t("nav.calendar")}</Link>

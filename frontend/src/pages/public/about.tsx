@@ -84,7 +84,7 @@ export function AboutPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
-              <Link to="/daftar/organizer">{t("home.ctaSecondary")}</Link>
+              <Link to="/register-organizer">{t("home.ctaSecondary")}</Link>
             </Button>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function AboutPage() {
             </div>
           </div>
           <Button asChild className="shrink-0 rounded-full">
-            <Link to="/daftar/organizer">{t("home.organizerCta")}</Link>
+            <Link to="/register-organizer">{t("home.organizerCta")}</Link>
           </Button>
         </div>
       </section>

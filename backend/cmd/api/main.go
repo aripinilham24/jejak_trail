@@ -22,7 +22,9 @@ import (
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/crypto"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/httpx"
 	"github.com/aripinilham/jejak_trail/backend/internal/platform/middleware"
+	"github.com/aripinilham/jejak_trail/backend/internal/registration"
 	"github.com/aripinilham/jejak_trail/backend/internal/storage"
+	"github.com/aripinilham/jejak_trail/backend/internal/upload"
 )
 
 func main() {
@@ -79,7 +81,12 @@ func run() error {
 	eventService := event.NewService(database, auditWriter, cfg, store)
 	eventHandler := event.NewHandler(eventService)
 
-	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, store)
+	notifier := notification.NewNotifier(genQueries(database), mailer, logger)
+	registrationService := registration.NewService(database, cfg, encryptor, notifier, store, logger)
+	registrationHandler := registration.NewHandler(registrationService)
+	uploadHandler := upload.NewHandler(store)
+
+	app := newApp(cfg, logger, database, tokens, authHandler, eventHandler, registrationHandler, uploadHandler, store)
 
 	logger.Info("starting api",
 		"app", cfg.AppName,
@@ -105,6 +112,8 @@ func newApp(
 	tokens *auth.TokenManager,
 	authHandler *auth.Handler,
 	eventHandler *event.Handler,
+	registrationHandler *registration.Handler,
+	uploadHandler *upload.Handler,
 	store storage.Storage,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -168,6 +177,11 @@ func newApp(
 
 	account := api.Group("/account", auth.RequireAuth(tokens, auth.AccountAttendee))
 	account.Patch("/profile", authHandler.UpdateProfile)
+	account.Get("/registrations", registrationHandler.ListMine)
+	account.Get("/registrations/:id", registrationHandler.GetMine)
+
+	api.Post("/events/:slug/registrations", auth.RequireAuth(tokens, auth.AccountAttendee), registrationHandler.Submit)
+	api.Post("/uploads", auth.RequireAuth(tokens), uploadHandler.Upload)
 
 	api.Get("/events/calendar", eventHandler.Calendar)
 	api.Get("/events", eventHandler.List)
@@ -180,6 +194,10 @@ func newApp(
 	organizer.Get("/events/:id", eventHandler.OrganizerGet)
 	organizer.Put("/events/:id", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerUpdate)
 	organizer.Post("/events/:id/submit", auth.RequireRole(auth.RoleOwner), eventHandler.OrganizerSubmit)
+	organizer.Get("/registrations", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerList)
+	organizer.Get("/registrations/:id", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerGet)
+	organizer.Post("/registrations/:id/approve", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerApprove)
+	organizer.Post("/registrations/:id/reject", auth.RequireRole(auth.RoleOwner, auth.RoleVerifier), registrationHandler.OrganizerReject)
 
 	admin := api.Group("/admin", auth.RequireAuth(tokens, auth.AccountAdmin))
 	admin.Get("/events", eventHandler.AdminList)

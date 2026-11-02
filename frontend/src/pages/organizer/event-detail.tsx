@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useOrganizerEvent, useSubmitOrganizerEvent } from "@/lib/api/hooks"
+import { useOrganizerEvent, useOrganizerRegistrations, useSubmitOrganizerEvent } from "@/lib/api/hooks"
 import { errorMessage } from "@/lib/auth/auth-context"
 import { formatDateShort, formatDateTime, formatIDR } from "@/lib/format"
 
@@ -22,6 +22,7 @@ export function OrganizerEventDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
   const eventQuery = useOrganizerEvent(id)
+  const registrations = useOrganizerRegistrations({ eventId: id, limit: 50, enabled: Boolean(id) })
   const submit = useSubmitOrganizerEvent()
   const event = eventQuery.data
 
@@ -219,12 +220,36 @@ export function OrganizerEventDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Peserta</CardTitle>
+          <CardTitle className="text-base">Peserta ({registrations.data?.meta.total ?? 0})</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Daftar peserta akan tersedia setelah alur pendaftaran (milestone berikutnya) aktif.
-          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Dikirim</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(registrations.data?.data ?? []).map((reg) => (
+                <TableRow key={reg.id}>
+                  <TableCell className="font-medium">{reg.fullNameSnapshot}</TableCell>
+                  <TableCell>{reg.category?.name ?? "-"}</TableCell>
+                  <TableCell>{reg.status}</TableCell>
+                  <TableCell>{reg.submittedAt ? formatDateShort(reg.submittedAt) : "-"}</TableCell>
+                </TableRow>
+              ))}
+              {!registrations.isLoading && (registrations.data?.data ?? []).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                    Belum ada pendaftar.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
