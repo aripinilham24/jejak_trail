@@ -311,6 +311,13 @@ export const en: Translation = {
     agreeTerms: "I agree to the terms & conditions and privacy policy.",
     haveOrgAccount: "Already registered an organization?",
     demoHint: "Demo mode: pick one of the sample accounts to explore.",
+    emailLabel: "Email",
+    passwordLabel: "Password",
+    signInButton: "Sign in",
+    nameLabel: "Full name",
+    createAccountButton: "Create account",
+    signIn: "Sign in",
+    organizationNameLabel: "Organization name",
   },
   account: {
     title: "Participant dashboard",
@@ -470,7 +477,7 @@ export const en: Translation = {
     contact: "Contact",
     rights: "All rights reserved.",
     disclaimer:
-      "Demo mode: all data on this page is sample data and is not connected to a database.",
+      "MVP build: event, registration, and payment data is stored on the Jejak Trail server.",
   },
   theme: {
     light: "Light",

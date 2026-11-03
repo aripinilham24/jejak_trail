@@ -313,6 +313,13 @@ export const id: Translation = {
     agreeTerms: "Saya menyetujui syarat & ketentuan serta kebijakan privasi.",
     haveOrgAccount: "Sudah mendaftarkan organisasi?",
     demoHint: "Mode demo: pilih salah satu akun contoh untuk menjelajah.",
+    emailLabel: "Email",
+    passwordLabel: "Kata sandi",
+    signInButton: "Masuk",
+    nameLabel: "Nama lengkap",
+    createAccountButton: "Buat akun",
+    signIn: "Masuk",
+    organizationNameLabel: "Nama organisasi",
   },
   account: {
     title: "Dasbor peserta",
@@ -472,7 +479,7 @@ export const id: Translation = {
     contact: "Kontak",
     rights: "Hak cipta dilindungi.",
     disclaimer:
-      "Mode demo: seluruh data pada halaman ini adalah contoh dan tidak terhubung ke basis data.",
+      "Versi MVP: data event, pendaftaran, dan pembayaran tersimpan di server Jejak Trail.",
   },
   theme: {
     light: "Terang",

@@ -61,8 +61,8 @@ export function LoginPage() {
       <div className="flex min-h-[calc(100vh-theme(spacing.16))] flex-col items-center justify-center">
         <Card className="w-full max-w-sm">
           <CardHeader>
-            <CardTitle className="text-2xl">{t("auth.login.title")}</CardTitle>
-            <CardDescription>{t("auth.login.description")}</CardDescription>
+            <CardTitle className="text-2xl">{t("auth.loginTitle")}</CardTitle>
+            <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-4" onSubmit={handleSubmit}>
@@ -80,7 +80,7 @@ export function LoginPage() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">{t("auth.login.emailLabel")}</Label>
+                <Label htmlFor="email">{t("auth.emailLabel")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -92,7 +92,7 @@ export function LoginPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">{t("auth.login.passwordLabel")}</Label>
+                <Label htmlFor="password">{t("auth.passwordLabel")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -108,17 +108,17 @@ export function LoginPage() {
                 </p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Memproses..." : t("auth.login.signInButton")}
+                {loading ? "Memproses..." : t("auth.signInButton")}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              {t("auth.login.noAccount")}{" "}
+              {t("auth.noAccount")}{" "}
               <Link to="/register-attendee" className="underline">
-                {t("auth.login.signUpAttendee")}
+                {t("auth.registerAttendee")}
               </Link>{" "}
-              {t("auth.login.or")}{" "}
+              {t("auth.or")}{" "}
               <Link to="/register-organizer" className="underline">
-                {t("auth.login.signUpOrganizer")}
+                {t("auth.registerOrganizer")}
               </Link>
             </div>
           </CardContent>

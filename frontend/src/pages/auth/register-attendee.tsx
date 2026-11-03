@@ -50,13 +50,13 @@ export function RegisterAttendeePage() {
       <div className="flex min-h-[calc(100vh-theme(spacing.16))] flex-col items-center justify-center">
         <Card className="w-full max-w-sm">
           <CardHeader>
-            <CardTitle className="text-2xl">{t("auth.registerAttendee.title")}</CardTitle>
-            <CardDescription>{t("auth.registerAttendee.description")}</CardDescription>
+            <CardTitle className="text-2xl">{t("auth.registerTitle")}</CardTitle>
+            <CardDescription>{t("auth.registerSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-4" onSubmit={handleSubmit}>
               <div className="grid gap-2">
-                <Label htmlFor="name">{t("auth.registerAttendee.nameLabel")}</Label>
+                <Label htmlFor="name">{t("auth.nameLabel")}</Label>
                 <Input
                   id="name"
                   type="text"
@@ -67,7 +67,7 @@ export function RegisterAttendeePage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">{t("auth.registerAttendee.emailLabel")}</Label>
+                <Label htmlFor="email">{t("auth.emailLabel")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -88,7 +88,7 @@ export function RegisterAttendeePage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">{t("auth.registerAttendee.passwordLabel")}</Label>
+                <Label htmlFor="password">{t("auth.passwordLabel")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -105,13 +105,13 @@ export function RegisterAttendeePage() {
                 </p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Memproses..." : t("auth.registerAttendee.createAccountButton")}
+                {loading ? "Memproses..." : t("auth.createAccountButton")}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              {t("auth.registerAttendee.haveAccount")}{" "}
+              {t("auth.haveAccount")}{" "}
               <Link to="/login" className="underline">
-                {t("auth.registerAttendee.signIn")}
+                {t("auth.signIn")}
               </Link>
             </div>
           </CardContent>

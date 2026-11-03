@@ -87,15 +87,15 @@ export function RegisterOrganizerPage() {
       <div className="flex min-h-[calc(100vh-theme(spacing.16))] flex-col items-center justify-center py-10">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl">{t("auth.registerOrganizer.title")}</CardTitle>
-            <CardDescription>{t("auth.registerOrganizer.description")}</CardDescription>
+            <CardTitle className="text-2xl">{t("auth.registerOrgTitle")}</CardTitle>
+            <CardDescription>{t("auth.registerOrgSubtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-5" onSubmit={handleSubmit}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="organizationName">
-                    {t("auth.registerOrganizer.organizationNameLabel")}
+                    {t("auth.organizationNameLabel")}
                   </Label>
                   <Input
                     id="organizationName"
@@ -203,7 +203,7 @@ export function RegisterOrganizerPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">{t("auth.registerOrganizer.nameLabel")}</Label>
+                  <Label htmlFor="name">{t("auth.nameLabel")}</Label>
                   <Input
                     id="name"
                     placeholder="John Doe"
@@ -213,7 +213,7 @@ export function RegisterOrganizerPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">{t("auth.registerOrganizer.emailLabel")}</Label>
+                  <Label htmlFor="email">{t("auth.emailLabel")}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -224,7 +224,7 @@ export function RegisterOrganizerPage() {
                   />
                 </div>
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="password">{t("auth.registerOrganizer.passwordLabel")}</Label>
+                  <Label htmlFor="password">{t("auth.passwordLabel")}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -244,13 +244,13 @@ export function RegisterOrganizerPage() {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Memproses..." : t("auth.registerOrganizer.createAccountButton")}
+                {loading ? "Memproses..." : t("auth.createAccountButton")}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">
-              {t("auth.registerOrganizer.haveAccount")}{" "}
+              {t("auth.haveAccount")}{" "}
               <Link to="/login" className="underline">
-                {t("auth.registerOrganizer.signIn")}
+                {t("auth.signIn")}
               </Link>
             </div>
           </CardContent>
